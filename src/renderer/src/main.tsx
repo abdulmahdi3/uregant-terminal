@@ -17,6 +17,7 @@ import './styles/ai.css'
 import './styles/statusbar.css'
 import './styles/palette.css'
 import './styles/settings.css'
+import './styles/themes.css'
 
 // Debug handles for the scripted smoke/profiling harness (see src/main/smoke.ts).
 const dbg = window as unknown as {

@@ -1,0 +1,63 @@
+/* ============================================================
+   App-wide themes — applied as class on .app
+   ============================================================ */
+
+.theme-amoled {
+  --bg: #000000;
+  --bg-sunken: #000000;
+  --bg-elev: #090909;
+  --bg-elev-2: #111111;
+  --bg-elev-3: #1a1a1a;
+  --border: #1e1e1e;
+  --border-strong: #292929;
+  --border-faint: #131313;
+}
+
+.theme-ocean {
+  --bg: #060c16;
+  --bg-sunken: #040810;
+  --bg-elev: #0c1524;
+  --bg-elev-2: #111e30;
+  --bg-elev-3: #17273e;
+  --border: #1a2d46;
+  --border-strong: #243d5e;
+  --border-faint: #101c2e;
+  --accent: #00b4e6;
+  --accent-strong: #0096c4;
+  --accent-soft: rgba(0, 180, 230, 0.14);
+  --accent-glow: rgba(0, 180, 230, 0.38);
+  --ok: #20c8b0;
+}
+
+.theme-forest {
+  --bg: #060e09;
+  --bg-sunken: #040a06;
+  --bg-elev: #0b160e;
+  --bg-elev-2: #101f14;
+  --bg-elev-3: #16281a;
+  --border: #1c3020;
+  --border-strong: #264030;
+  --border-faint: #101c13;
+  --accent: #3fb950;
+  --accent-strong: #2da040;
+  --accent-soft: rgba(63, 185, 80, 0.14);
+  --accent-glow: rgba(63, 185, 80, 0.38);
+  --ok: #40d060;
+}
+
+.theme-dusk {
+  --bg: #100d08;
+  --bg-sunken: #0b0905;
+  --bg-elev: #1b1610;
+  --bg-elev-2: #231d15;
+  --bg-elev-3: #2c251c;
+  --border: #352a1e;
+  --border-strong: #463828;
+  --border-faint: #1e180f;
+  --accent: #e09a40;
+  --accent-strong: #c07830;
+  --accent-soft: rgba(224, 154, 64, 0.14);
+  --accent-glow: rgba(224, 154, 64, 0.38);
+  --ok: #60c868;
+  --warn: #f0c060;
+}

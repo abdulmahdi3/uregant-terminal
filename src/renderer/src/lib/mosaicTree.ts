@@ -1,5 +1,58 @@
 import type { MosaicNode, MosaicDirection } from 'react-mosaic-component'
 
+export interface PaneNeighbors {
+  left?: string
+  right?: string
+  up?: string
+  down?: string
+}
+
+/**
+ * Find the immediate spatial neighbor of `target` in each direction.
+ * For a row split (horizontal), first=left / second=right.
+ * For a column split (vertical), first=top / second=bottom.
+ * Returns the nearest leaf in each direction.
+ */
+export function getMosaicNeighbors(
+  layout: MosaicNode<string> | null,
+  target: string
+): PaneNeighbors {
+  if (!layout) return {}
+
+  function firstLeaf(node: MosaicNode<string>): string {
+    if (typeof node === 'string') return node
+    return firstLeaf(node.first)
+  }
+
+  function lastLeaf(node: MosaicNode<string>): string {
+    if (typeof node === 'string') return node
+    return lastLeaf(node.second)
+  }
+
+  const result: PaneNeighbors = {}
+
+  function visit(node: MosaicNode<string>, ctx: PaneNeighbors): boolean {
+    if (typeof node === 'string') {
+      if (node === target) {
+        Object.assign(result, ctx)
+        return true
+      }
+      return false
+    }
+    if (node.direction === 'row') {
+      if (visit(node.first, { ...ctx, right: firstLeaf(node.second) })) return true
+      if (visit(node.second, { ...ctx, left: lastLeaf(node.first) })) return true
+    } else {
+      if (visit(node.first, { ...ctx, down: firstLeaf(node.second) })) return true
+      if (visit(node.second, { ...ctx, up: lastLeaf(node.first) })) return true
+    }
+    return false
+  }
+
+  visit(layout, {})
+  return result
+}
+
 /** Collect all leaf ids in the tree. */
 export function getLeaves(node: MosaicNode<string> | null): string[] {
   if (node === null) return []

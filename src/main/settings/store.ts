@@ -20,6 +20,7 @@ interface RawSettings {
   defaultModel: string
   theme: ThemeName
   language: string
+  accentColor: string
 }
 
 const DEFAULTS: RawSettings = {
@@ -33,7 +34,8 @@ const DEFAULTS: RawSettings = {
   defaultProvider: 'anthropic',
   defaultModel: DEFAULT_MODELS.anthropic[0],
   theme: 'dark',
-  language: 'en'
+  language: 'en',
+  accentColor: '#4c8dff'
 }
 
 function encrypt(plain: string): string {
@@ -107,7 +109,8 @@ export class SettingsStore {
       defaultProvider: s.defaultProvider,
       defaultModel: s.defaultModel,
       theme: s.theme,
-      language: s.language
+      language: s.language,
+      accentColor: s.accentColor || '#4c8dff'
     }
   }
 
@@ -156,6 +159,7 @@ export class SettingsStore {
     if (patch.defaultModel !== undefined) s.defaultModel = patch.defaultModel
     if (patch.theme) s.theme = patch.theme
     if (patch.language) s.language = patch.language
+    if (patch.accentColor) s.accentColor = patch.accentColor
 
     this.store.set(s)
   }

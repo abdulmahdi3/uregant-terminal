@@ -1,10 +1,26 @@
 import { forwardRef, useState } from 'react'
 import { Mosaic, MosaicWindow } from 'react-mosaic-component'
 import type { MosaicNode } from 'react-mosaic-component'
+import { getLeaves } from '@renderer/lib/mosaicTree'
+
+/** Minimum percentage either side of a split may occupy (prevents tiny panes). */
+const MIN_SPLIT_PCT = 20
+
+function clampSplits(node: MosaicNode<string> | null): MosaicNode<string> | null {
+  if (node === null || typeof node === 'string') return node
+  const pct = node.splitPercentage ?? 50
+  return {
+    ...node,
+    splitPercentage: Math.max(MIN_SPLIT_PCT, Math.min(100 - MIN_SPLIT_PCT, pct)),
+    first: clampSplits(node.first) as MosaicNode<string>,
+    second: clampSplits(node.second) as MosaicNode<string>
+  }
+}
 import { Bot, Terminal, SquareDashed, Send, Columns2, Rows2, Maximize2, Minimize2, X } from 'lucide-react'
 import clsx from 'clsx'
 import { useWorkspace } from '@renderer/store/workspace'
 import { useUi } from '@renderer/store/ui'
+import { useTokens, formatTokens } from '@renderer/store/tokens'
 import PaneView from './PaneView'
 import 'react-mosaic-component/react-mosaic-component.css'
 
@@ -17,13 +33,21 @@ function PaneIcon({ paneId, size = 14 }: { paneId: string; size?: number }): JSX
 
 function PaneStatus({ paneId }: { paneId: string }): JSX.Element | null {
   const pane = useWorkspace((s) => s.panes[paneId])
+  const isActive = useTokens((s) => !!s.activePanes[paneId])
+  const tokenCount = useTokens((s) => s.byPane[paneId] ?? 0)
+
   if (!pane) return null
   if (pane.type === 'ai') {
-    return pane.agent?.ptyId ? (
+    if (!pane.agent?.ptyId) return null
+    return (
       <span className="pane-status streaming">
-        <span className="pulse" /> live
+        <span className={clsx('pulse', !isActive && 'pulse-idle')} />
+        live
+        {tokenCount > 0 && (
+          <span className="pane-tok">~{formatTokens(tokenCount)}</span>
+        )}
       </span>
-    ) : null
+    )
   }
   if (pane.type === 'shell' && pane.shell?.shell) {
     const name = pane.shell.shell.split(/[\\/]/).pop()?.replace(/\.exe$/i, '')
@@ -44,9 +68,16 @@ const PaneHeader = forwardRef<HTMLDivElement, { paneId: string }>(function PaneH
   const title = useWorkspace((s) => s.panes[paneId]?.title ?? paneId)
   const linked = useWorkspace((s) => !!s.panes[paneId]?.telegramChatId)
   const activePaneId = useWorkspace((s) => s.activePaneId)
+  const paneType = useWorkspace((s) => s.panes[paneId]?.type)
+  const layout = useWorkspace((s) => s.layout)
+  const paneCount = useWorkspace((s) => Object.keys(s.panes).length)
+  const leaves = getLeaves(layout)
+  const paneNum = leaves.indexOf(paneId) + 1  // 1-based; 0 = not in layout yet
+  const agentCwd = useWorkspace((s) => s.panes[paneId]?.agent?.cwd)
   const updatePane = useWorkspace((s) => s.updatePane)
   const duplicatePane = useWorkspace((s) => s.duplicatePane)
   const removePane = useWorkspace((s) => s.removePane)
+  const openTerminalHere = useWorkspace((s) => s.openTerminalHere)
   const setActive = useWorkspace((s) => s.setActive)
   const setLinkingPaneId = useUi((s) => s.setLinkingPaneId)
   const toggleZoom = useUi((s) => s.toggleZoom)
@@ -85,6 +116,9 @@ const PaneHeader = forwardRef<HTMLDivElement, { paneId: string }>(function PaneH
         }
       }}
     >
+      {paneCount >= 2 && paneNum > 0 && (
+        <span className="pane-num" title={`Pane ${paneNum}`}>{paneNum}</span>
+      )}
       <PaneIcon paneId={paneId} />
       {editing ? (
         <input
@@ -107,6 +141,15 @@ const PaneHeader = forwardRef<HTMLDivElement, { paneId: string }>(function PaneH
       <PaneStatus paneId={paneId} />
       <div className="pane-header-spacer" />
       <div className="pane-controls" onMouseDown={stop}>
+        {paneType === 'ai' && agentCwd && (
+          <button
+            className="icon-btn"
+            title={`Open terminal here · Ctrl+Shift+C\n${agentCwd}`}
+            onClick={() => openTerminalHere(paneId)}
+          >
+            <Terminal size={13} />
+          </button>
+        )}
         <button
           className={clsx('icon-btn', linked && 'linked')}
           title="Link to Telegram"
@@ -154,19 +197,30 @@ export default function Workspace(): JSX.Element {
   if (layout === null) {
     return (
       <div className="workspace-empty">
-        <Bot size={34} strokeWidth={1.4} className="empty-glyph" />
-        <p>Spin up a pane to get started.</p>
-        <div className="empty-pane-actions">
-          <button className="btn primary" onClick={() => addPane('ai')}>
-            + Agent
+        <div className="empty-hero">
+          <div className="empty-icon-wrap">
+            <Bot size={28} strokeWidth={1.3} />
+          </div>
+          <h2 className="empty-title">uregant</h2>
+          <p className="empty-sub">AI agent + shell workspace</p>
+        </div>
+        <div className="empty-actions">
+          <button className="empty-action-card agent" onClick={() => addPane('ai')}>
+            <Bot size={18} strokeWidth={1.4} className="eac-icon" />
+            <span className="eac-label">Agent</span>
+            <span className="eac-hint">Claude Code session</span>
+            <span className="eac-key">Ctrl+Shift+A</span>
           </button>
-          <button className="btn" onClick={() => addPane('shell')}>
-            + Shell
+          <button className="empty-action-card shell" onClick={() => addPane('shell')}>
+            <Terminal size={18} strokeWidth={1.4} className="eac-icon" />
+            <span className="eac-label">Shell</span>
+            <span className="eac-hint">Interactive terminal</span>
+            <span className="eac-key">Ctrl+Shift+S</span>
           </button>
         </div>
-        <span className="empty-hint">
-          Press <kbd>Ctrl</kbd>+<kbd>K</kbd> for the command palette
-        </span>
+        <div className="empty-footer">
+          <span><kbd>Ctrl</kbd>+<kbd>K</kbd> command palette</span>
+        </div>
       </div>
     )
   }
@@ -192,7 +246,7 @@ export default function Workspace(): JSX.Element {
     <Mosaic<string>
       className="mosaic-uregant"
       value={layout}
-      onChange={(node: MosaicNode<string> | null) => setLayout(node)}
+      onChange={(node: MosaicNode<string> | null) => setLayout(clampSplits(node))}
       renderTile={(id, path) => (
         <MosaicWindow<string>
           path={path}

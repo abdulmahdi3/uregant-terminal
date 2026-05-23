@@ -1,6 +1,7 @@
 import { Terminal } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import { noteOutputChars } from './chat'
+import { useTokens } from '@renderer/store/tokens'
 import '@xterm/xterm/css/xterm.css'
 
 const SCROLLBACK = 5000
@@ -129,6 +130,7 @@ function createEntry(paneId: string, container: HTMLElement, opts: TerminalOpts)
       }
       term.write(e.data)
       noteOutputChars(e.data.length)
+      useTokens.getState().note(e.data.length, paneId)
     }
   })
   const offExit = window.api.onPtyExit((e) => {
@@ -216,4 +218,5 @@ export function disposeTerminal(paneId: string): void {
   if (!entry) return
   pool.delete(paneId)
   entry.dispose()
+  useTokens.getState().clearPane(paneId)
 }

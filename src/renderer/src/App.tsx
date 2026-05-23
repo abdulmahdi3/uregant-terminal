@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
+import clsx from 'clsx'
 import TitleBar from './components/TitleBar'
 import Workspace from './components/Workspace'
-import ChainOverlay from './components/ChainOverlay'
 import StatusBar from './components/StatusBar'
 import CommandPalette from './components/CommandPalette'
 import ShortcutsModal from './components/ShortcutsModal'
@@ -10,6 +10,7 @@ import TelegramLinkModal from './components/TelegramLinkModal'
 import Toaster from './components/Toaster'
 import { useSettings } from './store/settings'
 import { useWorkspace } from './store/workspace'
+import { useUi } from './store/ui'
 import { startMetricsLoop } from './store/metrics'
 import { useHotkeys } from './hooks/useHotkeys'
 import { usePersistence } from './hooks/usePersistence'
@@ -18,6 +19,7 @@ import { installChatStream } from './lib/chat'
 
 export default function App(): JSX.Element {
   const load = useSettings((s) => s.load)
+  const appTheme = useUi((s) => s.appTheme)
 
   useHotkeys()
   usePersistence()
@@ -45,11 +47,10 @@ export default function App(): JSX.Element {
   }, [load])
 
   return (
-    <div className="app">
+    <div className={clsx('app', appTheme !== 'dark' && `theme-${appTheme}`)}>
       <TitleBar />
       <main className="workspace-root">
         <Workspace />
-        <ChainOverlay />
       </main>
       <StatusBar />
 

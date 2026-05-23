@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import clsx from 'clsx'
 import { useUi } from '@renderer/store/ui'
 import { useWorkspace } from '@renderer/store/workspace'
 import { useSettings } from '@renderer/store/settings'
@@ -21,8 +22,10 @@ export default function TelegramLinkModal(): JSX.Element | null {
 
   const close = (): void => setLinkingPaneId(null)
 
+  const chatIdValid = /^-?\d+$/.test(chatId.trim())
+
   const link = (): void => {
-    if (!chatId.trim()) return
+    if (!chatIdValid) return
     window.api.linkPaneToTelegram(paneId, chatId.trim())
     updatePane(paneId, { telegramChatId: chatId.trim() })
     close()
@@ -48,16 +51,21 @@ export default function TelegramLinkModal(): JSX.Element | null {
           )}
           <label className="settings-label">{t('telegram.chatIdPrompt')}</label>
           <input
-            className="input"
+            className={clsx('input', chatId.trim() && !chatIdValid && 'input-error')}
             value={chatId}
             autoFocus
             onChange={(e) => setChatId(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && link()}
-            placeholder="e.g. 123456789"
+            placeholder="e.g. 123456789 or -100123456789"
             style={{ marginTop: 6 }}
           />
+          {chatId.trim() && !chatIdValid && (
+            <span className="hint fail" style={{ marginTop: 4, display: 'block' }}>
+              Chat ID must be a number (e.g. 123456789 or -100123456789)
+            </span>
+          )}
           <div className="settings-actions" style={{ marginTop: 12 }}>
-            <button className="btn primary" onClick={link} disabled={!chatId.trim()}>
+            <button className="btn primary" onClick={link} disabled={!chatIdValid}>
               {t('telegram.link')}
             </button>
             {pane.telegramChatId && (

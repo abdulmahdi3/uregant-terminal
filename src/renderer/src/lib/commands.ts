@@ -94,6 +94,16 @@ export function getCommands(): Command[] {
       run: () => ws().reopenClosed()
     },
     {
+      id: 'pane.openTerminal',
+      title: 'Open terminal in agent folder',
+      group: 'Panes',
+      shortcut: 'Ctrl+Shift+C',
+      run: () => {
+        const id = ws().activePaneId
+        if (id) ws().openTerminalHere(id)
+      }
+    },
+    {
       id: 'pane.zoom',
       title: 'Toggle zoom (maximize) active pane',
       group: 'Panes',

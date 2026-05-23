@@ -1,10 +1,21 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import clsx from 'clsx'
 import type { ProviderId } from '@shared/types'
 import { PROVIDER_LABELS, DEFAULT_MODELS } from '@shared/providers'
 import { SUPPORTED_LANGUAGES } from '@renderer/i18n/i18n'
 import { useSettings } from '@renderer/store/settings'
 import { useUi } from '@renderer/store/ui'
+
+const ACCENT_PRESETS = [
+  { label: 'Blue', value: '#4c8dff' },
+  { label: 'Indigo', value: '#6366f1' },
+  { label: 'Purple', value: '#a855f7' },
+  { label: 'Cyan', value: '#06b6d4' },
+  { label: 'Green', value: '#22c55e' },
+  { label: 'Amber', value: '#f59e0b' },
+  { label: 'Rose', value: '#f43f5e' },
+]
 
 type TestState = Record<string, { status: 'idle' | 'testing' | 'ok' | 'fail'; error?: string }>
 
@@ -20,6 +31,7 @@ export default function SettingsModal(): JSX.Element | null {
 
   const [keyInputs, setKeyInputs] = useState<Record<string, string>>({})
   const [ollamaUrl, setOllamaUrl] = useState('')
+  const [ollamaUrlError, setOllamaUrlError] = useState('')
   const [tgToken, setTgToken] = useState('')
   const [tests, setTests] = useState<TestState>({})
   const [defaultModels, setDefaultModels] = useState<string[]>([])
@@ -118,12 +130,23 @@ export default function SettingsModal(): JSX.Element | null {
               <label className="settings-label">{PROVIDER_LABELS.ollama}</label>
               <div className="settings-control">
                 <input
-                  className="input"
+                  className={clsx('input', ollamaUrlError && 'input-error')}
                   value={ollamaUrl}
                   placeholder={t('settings.baseUrl')}
-                  onChange={(e) => setOllamaUrl(e.target.value)}
-                  onBlur={() => patch({ ollamaBaseUrl: ollamaUrl })}
+                  onChange={(e) => { setOllamaUrl(e.target.value); setOllamaUrlError('') }}
+                  onBlur={() => {
+                    if (!ollamaUrl) { patch({ ollamaBaseUrl: ollamaUrl }); return }
+                    try {
+                      const u = new URL(ollamaUrl)
+                      if (!u.protocol.startsWith('http')) throw new Error()
+                      setOllamaUrlError('')
+                      patch({ ollamaBaseUrl: ollamaUrl })
+                    } catch {
+                      setOllamaUrlError('Must be a valid http:// or https:// URL')
+                    }
+                  }}
                 />
+                {ollamaUrlError && <span className="hint fail">{ollamaUrlError}</span>}
               </div>
             </div>
           </section>
@@ -242,6 +265,41 @@ export default function SettingsModal(): JSX.Element | null {
                     </option>
                   ))}
                 </select>
+              </div>
+            </div>
+            <div className="settings-row">
+              <label className="settings-label">Accent Color</label>
+              <div className="settings-control">
+                <div className="color-picker-row">
+                  {ACCENT_PRESETS.map((p) => (
+                    <button
+                      key={p.value}
+                      className={clsx('color-swatch', settings.accentColor === p.value && 'active')}
+                      style={{ background: p.value }}
+                      onClick={() => patch({ accentColor: p.value })}
+                      title={p.label}
+                    />
+                  ))}
+                  <label className="color-custom-label" title="Custom color">
+                    <input
+                      type="color"
+                      value={settings.accentColor || '#4c8dff'}
+                      onChange={(e) => patch({ accentColor: e.target.value })}
+                      className="color-custom-input"
+                    />
+                    <span
+                      className={clsx(
+                        'color-swatch',
+                        'color-custom-preview',
+                        !ACCENT_PRESETS.some((p) => p.value === settings.accentColor) && 'active'
+                      )}
+                      style={{ background: settings.accentColor || '#4c8dff' }}
+                    >
+                      <span className="color-custom-plus">+</span>
+                    </span>
+                  </label>
+                </div>
+                <span className="hint">Changes the UI accent color globally.</span>
               </div>
             </div>
           </section>

@@ -5,6 +5,10 @@
   display: grid;
   place-items: center;
   z-index: 100;
+  animation: overlay-in var(--dur) var(--ease);
+}
+@keyframes overlay-in {
+  from { opacity: 0; }
 }
 .modal {
   width: 720px;
@@ -16,6 +20,13 @@
   display: flex;
   flex-direction: column;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  animation: modal-in var(--dur) var(--ease);
+}
+@keyframes modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.98);
+  }
 }
 .modal.small {
   width: 420px;
@@ -84,4 +95,66 @@
 
 [dir='rtl'] .settings-row {
   grid-template-columns: 1fr 160px;
+}
+
+/* ---- accent color picker ---- */
+.color-picker-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.color-swatch {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: border-color var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease),
+    box-shadow var(--dur-fast) var(--ease);
+  flex-shrink: 0;
+}
+.color-swatch:hover {
+  transform: scale(1.18);
+  box-shadow: 0 0 0 2px var(--bg-elev-3), 0 0 6px rgba(255, 255, 255, 0.12);
+}
+.color-swatch.active {
+  border-color: var(--text);
+  transform: scale(1.15);
+}
+.color-custom-label {
+  position: relative;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.color-custom-input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+  padding: 0;
+  border: none;
+}
+.color-custom-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-style: dashed;
+  cursor: pointer;
+  user-select: none;
+}
+.color-custom-plus {
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modal-overlay,
+  .modal { animation: none; }
 }

@@ -105,21 +105,29 @@ select {
 }
 
 ::-webkit-scrollbar {
-  width: 9px;
-  height: 9px;
-}
-::-webkit-scrollbar-thumb {
-  background: var(--border-strong);
-  border-radius: var(--r-pill);
-  border: 2px solid transparent;
-  background-clip: padding-box;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #3d4554;
-  background-clip: padding-box;
+  width: 10px;
+  height: 10px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
+}
+/* default: thumb is a 2px sliver via large transparent border */
+::-webkit-scrollbar-thumb {
+  background: var(--border-faint);
+  border-radius: var(--r-pill);
+  border: 4px solid transparent;
+  background-clip: padding-box;
+  transition: border-width 150ms ease, background 150ms ease;
+}
+/* on hover over any scrollable element: expand to 8px */
+*:hover::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-width: 1px;
+  background-clip: padding-box;
+}
+*:hover::-webkit-scrollbar-thumb:hover {
+  background: #3d4554;
+  background-clip: padding-box;
 }
 
 .app {
@@ -191,6 +199,12 @@ select {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-soft);
 }
+.input.input-error {
+  border-color: var(--error, #f43f5e);
+}
+.input.input-error:focus {
+  box-shadow: 0 0 0 3px rgba(244, 63, 94, 0.2);
+}
 
 /* ---- small reusable bits ---- */
 .badge {
@@ -228,10 +242,163 @@ select {
   height: 7px;
   border-radius: 50%;
   background: var(--text-faint);
+  flex-shrink: 0;
 }
 .dot.live {
   background: var(--ok);
   box-shadow: 0 0 0 3px rgba(63, 185, 80, 0.18);
+}
+.dot.live.streaming {
+  animation: dot-pulse 1.5s ease-in-out infinite;
+}
+@keyframes dot-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 2px rgba(63, 185, 80, 0.2);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 0 5px rgba(63, 185, 80, 0.38), 0 0 10px rgba(63, 185, 80, 0.25);
+    transform: scale(1.15);
+  }
+}
+
+/* ---- action buttons — icon-only with idle glow animation ---- */
+.action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  width: 26px;
+  height: 24px;
+  border-radius: 7px;
+  border: 1px solid transparent;
+  transition: transform var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease),
+    background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+}
+.action-btn:active {
+  transform: scale(0.9);
+}
+
+/* shimmer sweep that plays on all action buttons */
+.action-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -70%;
+  width: 55%;
+  height: 100%;
+  background: linear-gradient(
+    105deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.14) 50%,
+    transparent 100%
+  );
+  animation: btn-shimmer 4s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes btn-shimmer {
+  0%, 50%   { left: -70%; opacity: 1; }
+  78%, 100% { left: 130%;  opacity: 0; }
+}
+.action-btn:hover::before {
+  animation: none;
+  opacity: 0;
+}
+
+/* ---- agent (blue) ---- */
+.action-btn.agent-btn {
+  background: linear-gradient(145deg, #1e3d74 0%, #132a52 100%);
+  border-color: rgba(76, 141, 255, 0.38);
+  color: #80b0ff;
+  animation: glow-blue 3.8s ease-in-out infinite;
+}
+.action-btn.agent-btn::before {
+  animation-delay: 0s;
+}
+.action-btn.agent-btn:hover {
+  background: linear-gradient(145deg, #2d5aad 0%, #1e3d74 100%);
+  color: #c4dcff;
+  animation: none;
+  box-shadow: 0 0 0 1px rgba(76, 141, 255, 0.65),
+              0 0 18px rgba(76, 141, 255, 0.28),
+              inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+/* ---- shell (green) ---- */
+.action-btn.shell-btn {
+  background: linear-gradient(145deg, #143b26 0%, #0b2418 100%);
+  border-color: rgba(63, 185, 80, 0.32);
+  color: #5dba7a;
+  animation: glow-green 3.8s ease-in-out infinite;
+  animation-delay: 1.26s;
+}
+.action-btn.shell-btn::before {
+  animation-delay: 1.26s;
+}
+.action-btn.shell-btn:hover {
+  background: linear-gradient(145deg, #1e5c3a 0%, #143b26 100%);
+  color: #a0e8b8;
+  animation: none;
+  box-shadow: 0 0 0 1px rgba(63, 185, 80, 0.6),
+              0 0 18px rgba(63, 185, 80, 0.24),
+              inset 0 1px 0 rgba(255, 255, 255, 0.07);
+}
+
+/* ---- workspace (purple) ---- */
+.action-btn.ws-btn {
+  background: linear-gradient(145deg, #2a1a42 0%, #1a0e2e 100%);
+  border-color: rgba(188, 140, 255, 0.32);
+  color: #b08ae0;
+  animation: glow-purple 3.8s ease-in-out infinite;
+  animation-delay: 2.52s;
+}
+.action-btn.ws-btn::before {
+  animation-delay: 2.52s;
+}
+.action-btn.ws-btn:hover {
+  background: linear-gradient(145deg, #3e2860 0%, #2a1a42 100%);
+  color: #ddc4ff;
+  animation: none;
+  box-shadow: 0 0 0 1px rgba(188, 140, 255, 0.6),
+              0 0 18px rgba(188, 140, 255, 0.22),
+              inset 0 1px 0 rgba(255, 255, 255, 0.07);
+}
+
+/* ---- glow keyframes (staggered via delay above) ---- */
+@keyframes glow-blue {
+  0%, 100% {
+    box-shadow: 0 0 0 1px rgba(76, 141, 255, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 0 1px rgba(76, 141, 255, 0.55),
+                0 0 14px rgba(76, 141, 255, 0.22);
+  }
+}
+@keyframes glow-green {
+  0%, 100% {
+    box-shadow: 0 0 0 1px rgba(63, 185, 80, 0.18);
+  }
+  50% {
+    box-shadow: 0 0 0 1px rgba(63, 185, 80, 0.52),
+                0 0 14px rgba(63, 185, 80, 0.2);
+  }
+}
+@keyframes glow-purple {
+  0%, 100% {
+    box-shadow: 0 0 0 1px rgba(188, 140, 255, 0.18);
+  }
+  50% {
+    box-shadow: 0 0 0 1px rgba(188, 140, 255, 0.52),
+                0 0 14px rgba(188, 140, 255, 0.2);
+  }
+}
+
+.action-btn.lg {
+  width: 38px;
+  height: 34px;
+  border-radius: 10px;
+  gap: 6px;
 }
 
 .icon-btn {
@@ -244,11 +411,15 @@ select {
   width: 26px;
   height: 24px;
   border-radius: var(--r-sm);
-  transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+  transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease),
+              transform 60ms var(--ease);
 }
 .icon-btn:hover {
   background: var(--bg-elev-3);
   color: var(--text);
+}
+.icon-btn:active {
+  transform: scale(0.82);
 }
 .icon-btn.danger:hover {
   color: var(--danger);

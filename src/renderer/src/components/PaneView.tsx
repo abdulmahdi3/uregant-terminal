@@ -1,3 +1,4 @@
+import clsx from 'clsx'
 import { useWorkspace } from '@renderer/store/workspace'
 import EmptyPane from './EmptyPane'
 import AiPane from './AiPane'
@@ -14,12 +15,12 @@ export default function PaneView({ paneId }: { paneId: string }): JSX.Element {
 
   return (
     <div
-      className={
-        'pane-body' +
-        (activePaneId === paneId ? ' active' : '') +
-        (entering ? ' pane-entering' : '') +
-        (closing ? ' pane-exiting' : '')
-      }
+      className={clsx(
+        'pane-body',
+        activePaneId === paneId && 'active',
+        entering && 'pane-entering',
+        closing && 'pane-exiting'
+      )}
       data-pane-id={paneId}
       onMouseDown={() => setActive(paneId)}
     >

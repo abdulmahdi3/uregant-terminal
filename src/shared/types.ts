@@ -48,8 +48,8 @@ export interface Pane {
   shell?: ShellPaneState
   /** chat id this pane forwards output to, if linked */
   telegramChatId?: string
-  /** when true, this pane pipes its output into the next pane (chain link) */
-  pipeForward?: boolean
+  /** pane IDs this pane pipes its output into (supports fan-out to multiple) */
+  pipeTargets?: string[]
 }
 
 // ---------------------------------------------------------------------------
@@ -79,6 +79,7 @@ export interface SettingsPublic {
   defaultModel: string
   theme: ThemeName
   language: string
+  accentColor: string
 }
 
 // Patch shapes the renderer may send to mutate settings.
@@ -91,6 +92,7 @@ export interface SettingsPatch {
   defaultModel?: string
   theme?: ThemeName
   language?: string
+  accentColor?: string
 }
 
 // ---------------------------------------------------------------------------

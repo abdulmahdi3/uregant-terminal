@@ -16,8 +16,8 @@ function createWindow(): void {
     // (minimize / maximize / close) in the top-right via the overlay API.
     titleBarStyle: 'hidden',
     titleBarOverlay: {
-      color: '#12151c',
-      symbolColor: '#e7ecf3',
+      color: '#12151c',   // must match --bg-elev in global.css
+      symbolColor: '#8b94a6',
       height: 40
     },
     backgroundColor: '#0b0d12',

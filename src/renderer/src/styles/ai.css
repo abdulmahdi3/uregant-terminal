@@ -100,6 +100,13 @@
   flex-direction: column;
   gap: 4px;
   padding-bottom: 16px;
+  animation: msg-in var(--dur) var(--ease) both;
+}
+@keyframes msg-in {
+  from {
+    opacity: 0;
+    transform: translateY(7px);
+  }
 }
 .msg-head {
   display: flex;
@@ -274,4 +281,8 @@
 }
 .composer-send.danger:hover {
   background: color-mix(in srgb, var(--danger) 14%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .msg { animation: none; }
 }

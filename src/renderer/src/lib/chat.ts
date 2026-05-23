@@ -1,4 +1,5 @@
 import { useWorkspace, newMessageId } from '@renderer/store/workspace'
+import { useTokens } from '@renderer/store/tokens'
 import type { Pane, ChatMessage } from '@shared/types'
 
 interface StreamTarget {
@@ -64,6 +65,7 @@ export function installChatStream(): void {
     if (chunk.type === 'text') {
       chunkCount++
       charCount += chunk.text.length
+      useTokens.getState().note(chunk.text.length, target.paneId)
       pending.push({ paneId: target.paneId, messageId: target.messageId, text: chunk.text })
       scheduleFlush()
     } else if (chunk.type === 'done') {

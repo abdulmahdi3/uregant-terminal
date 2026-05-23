@@ -31,3 +31,242 @@
 .sb-spacer {
   flex: 1;
 }
+.sb-rate {
+  color: var(--text-faint);
+  margin-left: 4px;
+  padding-left: 4px;
+  border-left: 1px solid var(--border-faint);
+}
+.sb-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-faint);
+  flex-shrink: 0;
+}
+.sb-dot.live {
+  background: var(--ok);
+}
+.sb-dot.live.streaming {
+  animation: dot-pulse 1.5s ease-in-out infinite;
+}
+
+/* ---- pipe target row ---- */
+@keyframes sb-row-in {
+  from { opacity: 0; transform: translateX(-8px); }
+}
+.sb-pipe-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 8px;
+  border-left: 1px solid var(--border-faint);
+  border-right: 1px solid var(--border-faint);
+  animation: sb-row-in var(--dur-fast) var(--ease) both;
+}
+.sb-pipe-icon {
+  color: var(--text-faint);
+  flex-shrink: 0;
+}
+.sb-pipe-label {
+  font-size: var(--fs-2xs);
+  color: var(--text-faint);
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+}
+
+.sb-pipe-badge {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-faint);
+  background: var(--bg-elev-3);
+  border: 1px solid var(--border-faint);
+  cursor: pointer;
+  transition: background 110ms ease, color 110ms ease,
+              border-color 110ms ease, box-shadow 110ms ease,
+              transform 110ms ease;
+  flex-shrink: 0;
+}
+.sb-pipe-badge:hover {
+  color: var(--text);
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  transform: scale(1.15);
+}
+@keyframes badge-connect {
+  0%   { transform: scale(1.38); box-shadow: 0 0 0 4px rgba(63, 185, 80, 0.35); }
+  60%  { transform: scale(0.95); }
+  100% { transform: scale(1.08); box-shadow: 0 0 0 2px rgba(63, 185, 80, 0.2); }
+}
+.sb-pipe-badge.active {
+  background: color-mix(in srgb, var(--ok) 22%, var(--bg-elev-2));
+  border-color: var(--ok);
+  color: #a8f5b8;
+  box-shadow: 0 0 0 2px rgba(63, 185, 80, 0.2);
+  transform: scale(1.08);
+  animation: badge-connect 300ms var(--ease);
+}
+.sb-pipe-badge.active:hover {
+  background: color-mix(in srgb, var(--ok) 35%, var(--bg-elev-2));
+}
+
+.sb-pipe-count {
+  font-size: var(--fs-2xs);
+  color: var(--ok);
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+}
+
+/* ---- Claude session usage ---- */
+.sb-claude {
+  color: var(--accent);
+  gap: 5px;
+}
+.sb-output-label {
+  font-size: var(--fs-2xs);
+  color: var(--text-faint);
+  letter-spacing: 0.2px;
+}
+
+/* ---- app theme cycle button ---- */
+.sb-theme-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 18px;
+  padding: 0 7px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--border-faint);
+  background: transparent;
+  color: var(--text-faint);
+  font-size: var(--fs-2xs);
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease),
+              border-color var(--dur-fast) var(--ease), transform 60ms var(--ease);
+  white-space: nowrap;
+}
+.sb-theme-btn:hover {
+  background: var(--bg-elev-2);
+  color: var(--text);
+  border-color: var(--border);
+}
+.sb-theme-btn:active {
+  transform: scale(0.92);
+}
+
+/* ---- layout preset picker ---- */
+.sb-layout-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+/* invisible bridge that fills the gap between the trigger and the popup,
+   keeping :hover active as the cursor travels upward */
+.sb-layout-wrap::before {
+  content: '';
+  position: absolute;
+  bottom: 100%;
+  left: -20px;
+  right: -20px;
+  height: 32px;
+  pointer-events: auto;
+}
+.sb-layout-btn {
+  cursor: default;
+  gap: 4px;
+}
+.sb-layout-count {
+  font-family: var(--mono);
+  font-size: var(--fs-2xs);
+  font-weight: 600;
+}
+
+.sb-layout-popup {
+  position: absolute;
+  bottom: calc(100% + 32px);
+  left: 0;
+  background: var(--bg-elev);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-lg);
+  padding: 10px;
+  box-shadow: var(--shadow-lg);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(6px);
+  transition: opacity var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease);
+  z-index: 200;
+  min-width: 220px;
+}
+.sb-layout-wrap:hover .sb-layout-popup {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.sb-layout-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.lp-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 5px 6px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--border-faint);
+  background: var(--bg-elev-2);
+  cursor: pointer;
+  transition: border-color var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease),
+              transform 60ms var(--ease);
+}
+.lp-tile:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.lp-tile:active {
+  transform: scale(0.94);
+}
+
+.lp-grid {
+  position: relative;
+  width: 52px;
+  height: 38px;
+  flex-shrink: 0;
+}
+.lp-pane {
+  position: absolute;
+  background: var(--bg-elev-3);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  box-sizing: border-box;
+  transition: background var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
+}
+.lp-tile:hover .lp-pane {
+  background: color-mix(in srgb, var(--accent) 18%, var(--bg-elev-3));
+  border-color: var(--accent);
+}
+.lp-label {
+  font-size: 9px;
+  font-family: var(--mono);
+  color: var(--text-faint);
+  letter-spacing: 0.2px;
+}
+.lp-tile:hover .lp-label {
+  color: var(--accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sb-pipe-row,
+  .sb-pipe-badge.active { animation: none; }
+}

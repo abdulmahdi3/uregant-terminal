@@ -1,40 +1,230 @@
 .titlebar {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: var(--sp-5);
   height: var(--titlebar-h);
-  /* reserve room on the right for the native Windows caption buttons */
-  padding: 0 138px 0 var(--sp-5);
-  background: linear-gradient(180deg, var(--bg-elev) 0%, var(--bg) 100%);
+  /* reserve 138 px on the right for native Windows caption buttons */
+  padding: 0 138px 0 var(--sp-4);
+  /* flat colour — matches the titleBarOverlay.color in main/index.ts */
+  background: var(--bg-elev);
   border-bottom: 1px solid var(--border);
   flex: 0 0 auto;
   -webkit-app-region: drag;
   user-select: none;
+  gap: 0;
 }
 
 .titlebar [data-nodrag] {
   -webkit-app-region: no-drag;
 }
 
-.titlebar-brand {
+/* ---- left group: brand + controls + actions ---- */
+.titlebar-left {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 5px;
+  flex: 0 0 auto;
 }
+
 .brand-icon {
   color: var(--accent);
+  flex-shrink: 0;
 }
 .brand-name {
   font-size: var(--fs-sm);
   font-weight: 600;
   letter-spacing: 0.2px;
+  margin-right: 2px;
 }
 
-.titlebar-actions {
+/* thin vertical divider between sections */
+.titlebar-sep {
+  width: 1px;
+  height: 16px;
+  background: var(--border);
+  margin: 0 4px;
+  flex-shrink: 0;
+}
+
+/* drag region fills remaining space */
+.titlebar-drag {
+  flex: 1;
+  height: 100%;
+}
+
+/* ---- workspace tabs — centred absolutely over the drag region ---- */
+.titlebar-workspaces {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 3px;
+  max-width: 42%;
+  /* overflow must stay visible so the dropdown can escape the bounds */
+  overflow: visible;
 }
+
+@keyframes tab-in {
+  from { opacity: 0; transform: translateY(-4px) scale(0.94); }
+}
+.ws-tab {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: var(--r-pill);
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  color: var(--text-dim);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease);
+  white-space: nowrap;
+  max-width: 180px;
+  animation: tab-in var(--dur) var(--ease) both;
+}
+.ws-tab:hover:not(.active) {
+  background: var(--bg-elev-2);
+  color: var(--text);
+}
+.ws-tab.active {
+  background: var(--bg-elev-2);
+  border-color: var(--border-strong);
+  color: var(--text);
+  cursor: default;
+}
+.ws-tab-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 150px;
+}
+.ws-tab.active .ws-tab-name {
+  cursor: text;
+}
+.ws-tab-input {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text);
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  font-family: inherit;
+  width: 110px;
+  min-width: 50px;
+  padding: 0;
+}
+
+/* close button — fades in on tab hover */
+.ws-tab-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
+  color: var(--text-faint);
+  padding: 0;
+  margin-left: 5px;
+  flex-shrink: 0;
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease);
+}
+.ws-tab:hover .ws-tab-close {
+  opacity: 1;
+  pointer-events: auto;
+}
+.ws-tab-close:hover {
+  background: rgba(240, 93, 87, 0.18);
+  color: var(--danger);
+}
+
+/* ---- workspace overflow (>4 tabs) — hover to reveal ---- */
+.ws-overflow-wrap {
+  position: relative;
+}
+
+.ws-more-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: var(--r-pill);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--text-faint);
+  border: 1px solid transparent;
+  cursor: default;
+  background: transparent;
+  font-family: inherit;
+  transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease);
+}
+.ws-overflow-wrap:hover .ws-more-btn {
+  background: var(--bg-elev-2);
+  color: var(--text-dim);
+  border-color: var(--border);
+}
+/* accent tint when the active workspace is hidden in overflow */
+.ws-more-btn.has-active {
+  color: var(--accent);
+  border-color: rgba(76, 141, 255, 0.3);
+  background: var(--accent-soft);
+}
+
+.ws-overflow-menu {
+  position: absolute;
+  top: calc(100% + 5px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg-elev-2);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-md);
+  padding: 4px;
+  box-shadow: var(--shadow-lg);
+  min-width: 170px;
+  z-index: 200;
+  /* hidden until the wrapper is hovered */
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-50%) translateY(-4px);
+  transition: opacity var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease);
+}
+.ws-overflow-wrap:hover .ws-overflow-menu {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(-50%) translateY(0);
+}
+
+.ws-overflow-item {
+  padding: 6px 10px;
+  border-radius: var(--r-sm);
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  color: var(--text-dim);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+}
+.ws-overflow-item:hover {
+  background: var(--bg-elev-3);
+  color: var(--text);
+}
+.ws-overflow-item.active {
+  color: var(--accent);
+}
+
+/* small helper used by .btn.sm — kept for compatibility */
 .btn.sm {
   display: inline-flex;
   align-items: center;
@@ -43,13 +233,6 @@
   font-size: var(--fs-xs);
 }
 
-.titlebar-drag {
-  flex: 1;
-  height: 100%;
-}
-
-.titlebar-stats {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+@media (prefers-reduced-motion: reduce) {
+  .ws-tab { animation: none; }
 }

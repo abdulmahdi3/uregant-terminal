@@ -66,6 +66,9 @@ export function useHotkeys(): void {
           case 'KeyT':
             e.preventDefault()
             return runCommand('pane.reopen')
+          case 'KeyC':
+            e.preventDefault()
+            return runCommand('pane.openTerminal')
           case 'Digit5':
             e.preventDefault()
             return runCommand('pane.newShell')
