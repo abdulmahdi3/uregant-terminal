@@ -7,3 +7,4 @@ dist
 .vite
 smoke*.png
 dev.log
+.claude/settings.local.json
