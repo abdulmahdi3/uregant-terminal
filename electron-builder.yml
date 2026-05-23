@@ -28,6 +28,13 @@ nsis:
   artifactName: ${productName}-${version}-Setup-${arch}.${ext}
 portable:
   artifactName: ${productName}-${version}-Portable-${arch}.${ext}
+# Auto-update feed: the NSIS installer checks GitHub Releases on launch and
+# patches itself. Publishing uploads the installer + latest.yml to a release
+# for the matching version tag (see `npm run publish:win`).
+publish:
+  provider: github
+  owner: abdulmahdi3
+  repo: uregant-terminal
 # node-pty ships as a prebuilt binary matched to the Electron ABI (see
 # scripts/setup-natives.mjs); no native compiler is available, so never rebuild.
 npmRebuild: false

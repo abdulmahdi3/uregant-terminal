@@ -1,6 +1,7 @@
 import { app, shell, BrowserWindow } from 'electron'
 import { join } from 'path'
 import { registerIpc, type IpcContext } from './ipc'
+import { initAutoUpdate } from './updater'
 
 let mainWindow: BrowserWindow | null = null
 let ipc: IpcContext | null = null
@@ -106,6 +107,7 @@ app.whenReady().then(() => {
   app.setAppUserModelId('com.uregant.terminal')
   ipc = registerIpc(() => mainWindow)
   createWindow()
+  initAutoUpdate(() => mainWindow)
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
