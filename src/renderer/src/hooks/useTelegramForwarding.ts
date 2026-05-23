@@ -31,10 +31,10 @@ function ptyOf(paneId: string): string | undefined {
 
 /**
  * Owns the two-way Telegram bridge for panes linked to a chat:
- *  - outbound: forwards the submitted prompt and the agent's answer blocks
- *    (not the raw screen redraws a full-screen TUI emits);
- *  - inbound: types messages received from Telegram into the linked pane and
- *    arms answer-tracking so the reply is sent back to the chat.
+ *  - outbound: when a turn starts (typed locally or received from Telegram) the
+ *    bot posts a "working" placeholder; once the pane goes quiet it is deleted
+ *    and only the LAST answer block is sent back;
+ *  - inbound: messages received from Telegram are typed into the linked pane.
  */
 export function useTelegramForwarding(): void {
   useEffect(() => {
@@ -55,21 +55,25 @@ export function useTelegramForwarding(): void {
       if (pane.telegramChatId) window.api.linkPaneToTelegram(id, pane.telegramChatId)
     }
 
-    // Snapshot the answers already on screen so only new blocks count as "the result".
-    const arm = (id: string): void => {
+    // Begin tracking a turn: snapshot the answers already on screen (so only new
+    // blocks count) and ask the bot to show its "working" placeholder.
+    const startTurn = (id: string, prompt: string | null): void => {
       const s = getSt(id)
       s.armed = true
       s.baseBlocks = new Set(answerBlocks(getScreenText(id)))
+      window.api.telegramStartTurn(id, prompt)
     }
 
     const flush = (id: string): void => {
       const s = getSt(id)
       s.armed = false
       const fresh = answerBlocks(getScreenText(id)).filter((b) => !s.baseBlocks.has(b))
-      const result = fresh.join('\n\n').trim()
-      if (!result || result === s.lastSent) return
-      s.lastSent = result
-      window.api.forwardToTelegram(id, `🤖 ${result}`)
+      // Only the final answer block — not every block produced this turn.
+      const last = (fresh[fresh.length - 1] ?? '').trim()
+      const toSend = last && last !== s.lastSent ? last : ''
+      if (toSend) s.lastSent = toSend
+      // An empty string still tells the bridge to remove the "working" placeholder.
+      window.api.telegramFinishTurn(id, toSend)
     }
 
     // ---- outbound: capture locally-typed prompts ----
@@ -80,13 +84,9 @@ export function useTelegramForwarding(): void {
       for (const ch of data.replace(INPUT_ESC, '')) {
         const code = ch.charCodeAt(0)
         if (code === 13 || code === 10) {
-          // Enter: submit the buffered prompt and start tracking the answer.
           const prompt = buf.trim()
           buf = ''
-          if (prompt) {
-            window.api.forwardToTelegram(paneId, `🧑 ${prompt}`)
-            arm(paneId) // snapshot now; everything new after this is the answer
-          }
+          if (prompt) startTurn(paneId, prompt) // echo prompt + show "working"
         } else if (code === 127 || code === 8) {
           buf = buf.slice(0, -1) // backspace / delete
         } else if (code >= 32) {
@@ -100,7 +100,7 @@ export function useTelegramForwarding(): void {
     const offInbound = window.api.onTelegramInbound(({ paneId, text }) => {
       const ptyId = ptyOf(paneId)
       if (!ptyId) return
-      arm(paneId) // snapshot before the answer arrives so the reply goes back
+      startTurn(paneId, null) // they sent it from Telegram; just show "working"
       window.api.writePty(ptyId, bracketPaste(text))
       // submit on the next tick so the paste is registered first
       window.setTimeout(() => window.api.writePty(ptyId, '\r'), 150)

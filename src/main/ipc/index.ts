@@ -107,6 +107,14 @@ export function registerIpc(getWindow: () => BrowserWindow | null): IpcContext {
   ipcMain.on(IPC.telegramForward, (_e, { paneId, text }: { paneId: string; text: string }) =>
     telegram.forward(paneId, text)
   )
+  ipcMain.on(
+    IPC.telegramStartTurn,
+    (_e, { paneId, prompt }: { paneId: string; prompt: string | null }) =>
+      void telegram.startTurn(paneId, prompt)
+  )
+  ipcMain.on(IPC.telegramFinishTurn, (_e, { paneId, result }: { paneId: string; result: string }) =>
+    void telegram.finishTurn(paneId, result)
+  )
 
   // ---- perf ----
   // CPU% is derived from the delta of process.cpuUsage between samples so the

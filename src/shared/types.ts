@@ -217,6 +217,8 @@ export const IPC = {
   telegramRestart: 'telegram:restart',
   telegramLinkPane: 'telegram:link-pane',
   telegramForward: 'telegram:forward',
+  telegramStartTurn: 'telegram:start-turn', // show prompt + "working" placeholder
+  telegramFinishTurn: 'telegram:finish-turn', // delete placeholder + send result
   telegramInbound: 'telegram:inbound', // main -> renderer (event)
   telegramStatusChanged: 'telegram:status-changed', // main -> renderer (event)
 

@@ -41,6 +41,8 @@ export class TelegramBridge {
   /** chatId -> buffered outbound text */
   private outBuf = new Map<string, string>()
   private flushTimer: NodeJS.Timeout | null = null
+  /** chatId -> message_id of the transient "working" placeholder, if any */
+  private working = new Map<string, number>()
 
   constructor(
     private settings: SettingsStore,
@@ -97,12 +99,61 @@ export class TelegramBridge {
       this.flushTimer = null
     }
     this.outBuf.clear()
+    this.working.clear()
     this.status = { running: false }
   }
 
   linkPane(paneId: string, chatId: string | null): void {
     if (chatId) this.links.set(paneId, chatId)
     else this.links.delete(paneId)
+  }
+
+  /**
+   * Start of a turn: optionally echo the prompt, then post a transient
+   * "working" placeholder whose id is remembered so finishTurn can delete it.
+   */
+  async startTurn(paneId: string, prompt: string | null): Promise<void> {
+    const chatId = this.links.get(paneId)
+    if (!chatId || !this.bot) return
+    await this.clearWorking(chatId)
+    try {
+      if (prompt) {
+        const p = cleanForTelegram(prompt).trim()
+        if (p) await this.bot.api.sendMessage(chatId, `🧑 ${p}`)
+      }
+      const msg = await this.bot.api.sendMessage(chatId, '⏳ Working…')
+      this.working.set(chatId, msg.message_id)
+    } catch {
+      /* a failed placeholder must not break the turn */
+    }
+  }
+
+  /** End of a turn: remove the "working" placeholder and send the result. */
+  async finishTurn(paneId: string, result: string): Promise<void> {
+    const chatId = this.links.get(paneId)
+    if (!chatId || !this.bot) return
+    await this.clearWorking(chatId)
+    const cleaned = cleanForTelegram(result)
+    if (!cleaned.trim()) return
+    const out = cleaned.length > TG_MAX ? cleaned.slice(-TG_MAX) : cleaned
+    try {
+      await this.bot.api.sendMessage(chatId, `🤖 ${out}`)
+    } catch (err) {
+      this.status = { ...this.status, error: String(err) }
+      this.emitStatus(this.status)
+    }
+  }
+
+  /** Delete the "working" placeholder for a chat, if one is outstanding. */
+  private async clearWorking(chatId: string): Promise<void> {
+    const id = this.working.get(chatId)
+    if (id == null || !this.bot) return
+    this.working.delete(chatId)
+    try {
+      await this.bot.api.deleteMessage(chatId, id)
+    } catch {
+      /* message may already be gone */
+    }
   }
 
   /** Buffer pane output and flush to its linked chat on a throttle. */

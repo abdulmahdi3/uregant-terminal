@@ -58,6 +58,10 @@ const api = {
     ipcRenderer.invoke(IPC.telegramLinkPane, { paneId, chatId }),
   forwardToTelegram: (paneId: string, text: string): void =>
     ipcRenderer.send(IPC.telegramForward, { paneId, text }),
+  telegramStartTurn: (paneId: string, prompt: string | null): void =>
+    ipcRenderer.send(IPC.telegramStartTurn, { paneId, prompt }),
+  telegramFinishTurn: (paneId: string, result: string): void =>
+    ipcRenderer.send(IPC.telegramFinishTurn, { paneId, result }),
   onTelegramInbound: (cb: (e: TelegramInbound) => void): (() => void) =>
     on<TelegramInbound>(IPC.telegramInbound, cb),
   onTelegramStatusChanged: (cb: (s: TelegramStatus) => void): (() => void) =>
