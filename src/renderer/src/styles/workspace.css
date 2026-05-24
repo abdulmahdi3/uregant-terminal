@@ -5,6 +5,14 @@
   background: var(--bg-sunken);
 }
 
+/* Wrapper that identifies each pane for screenshot capture (data-pane-id) */
+.pane-capture {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
 /* ---- empty state ---- */
 .workspace-empty {
   position: absolute;
@@ -63,7 +71,7 @@
 .empty-action-card {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
   gap: 5px;
   width: 158px;
   padding: 14px 15px 13px;
@@ -71,7 +79,7 @@
   border: 1px solid var(--border);
   background: var(--bg-elev);
   cursor: pointer;
-  text-align: left;
+  text-align: center;
   transition: border-color var(--dur-fast) var(--ease),
               background var(--dur-fast) var(--ease),
               box-shadow var(--dur-fast) var(--ease),
@@ -120,6 +128,61 @@
   font-family: var(--mono);
   font-size: var(--fs-2xs);
   color: var(--text-faint);
+}
+
+/* ---- saved-sessions section in empty state ---- */
+.empty-sessions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 330px;
+  animation: fade-up var(--dur) var(--ease) 80ms both;
+}
+.es-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--text-dim);
+  padding: 0 2px;
+}
+.es-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.es-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--border-faint);
+  background: var(--bg-elev);
+  cursor: pointer;
+  text-align: left;
+  transition: background var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
+}
+.es-row:hover {
+  background: var(--bg-elev-2);
+  border-color: var(--border);
+}
+.es-name {
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+.es-meta {
+  font-size: var(--fs-2xs);
+  color: var(--text-faint);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .empty-footer {

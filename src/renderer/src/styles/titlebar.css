@@ -26,15 +26,21 @@
   flex: 0 0 auto;
 }
 
-.brand-icon {
+.brand-logo {
   color: var(--accent);
   flex-shrink: 0;
 }
 .brand-name {
   font-size: var(--fs-sm);
-  font-weight: 600;
-  letter-spacing: 0.2px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
   margin-right: 2px;
+}
+
+/* Sessions icon-btn active state */
+.icon-btn.sessions-btn.active {
+  background: var(--bg-elev-3);
+  color: var(--accent);
 }
 
 /* thin vertical divider between sections */
@@ -237,10 +243,6 @@
 .sessions-wrap {
   position: relative;
   display: inline-flex;
-}
-.sessions-btn.active {
-  background: var(--bg-elev-3);
-  color: var(--accent);
 }
 .sessions-menu {
   position: absolute;

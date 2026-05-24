@@ -169,6 +169,21 @@ export interface ClipboardContent {
 }
 
 // ---------------------------------------------------------------------------
+// Pane registry (sent from renderer → main so Telegram commands can inspect)
+// ---------------------------------------------------------------------------
+
+export interface PaneInfo {
+  /** 1-based display number in layout leaf order */
+  number: number
+  id: string
+  type: PaneType
+  title: string
+  agentCommand?: string
+  shellName?: string
+  linkedChatId?: string
+}
+
+// ---------------------------------------------------------------------------
 // Telegram bridge
 // ---------------------------------------------------------------------------
 
@@ -276,5 +291,12 @@ export const IPC = {
   fileSave: 'file:save',
 
   // directory picker (choose the folder to open an agent in)
-  dialogOpenDir: 'dialog:open-dir'
+  dialogOpenDir: 'dialog:open-dir',
+
+  // pane registry (renderer pushes snapshot to main on every workspace change)
+  panesUpdate: 'panes:update',
+
+  // screenshot → Telegram
+  screenshotPane: 'screenshot:pane',
+  screenshotWindow: 'screenshot:window'
 } as const

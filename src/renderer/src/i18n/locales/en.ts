@@ -1,6 +1,6 @@
 export default {
   app: {
-    title: 'uregant-terminal'
+    title: 'urterminal'
   },
   toolbar: {
     addAi: 'Add AI pane',

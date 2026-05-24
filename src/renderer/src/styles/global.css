@@ -274,7 +274,8 @@ select {
   border-radius: 7px;
   border: 1px solid transparent;
   transition: transform var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease),
-    background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+    background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease);
 }
 .action-btn:active {
   transform: scale(0.9);
@@ -306,92 +307,79 @@ select {
   opacity: 0;
 }
 
-/* ---- agent (blue) ---- */
+/* ---- agent — Anthropic / Claude coral palette ---- */
 .action-btn.agent-btn {
-  background: linear-gradient(145deg, #1e3d74 0%, #132a52 100%);
-  border-color: rgba(76, 141, 255, 0.38);
-  color: #80b0ff;
-  animation: glow-blue 3.8s ease-in-out infinite;
+  width: auto;
+  min-width: 26px;
+  padding: 0 7px;
+  gap: 0;
+  justify-content: center;
+  background: linear-gradient(145deg, #3d1f10 0%, #261208 100%);
+  border-color: rgba(217, 119, 87, 0.28);
+  color: #c07050;
+  animation: glow-claude 3.8s ease-in-out infinite;
 }
 .action-btn.agent-btn::before {
   animation-delay: 0s;
 }
 .action-btn.agent-btn:hover {
-  background: linear-gradient(145deg, #2d5aad 0%, #1e3d74 100%);
-  color: #c4dcff;
+  background: linear-gradient(145deg, #5c2d14 0%, #3d1f10 100%);
+  border-color: rgba(217, 119, 87, 0.62);
+  color: #e8a882;
   animation: none;
-  box-shadow: 0 0 0 1px rgba(76, 141, 255, 0.65),
-              0 0 18px rgba(76, 141, 255, 0.28),
-              inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  box-shadow: 0 0 0 1px rgba(217, 119, 87, 0.55),
+              0 0 16px rgba(217, 119, 87, 0.22),
+              inset 0 1px 0 rgba(255, 255, 255, 0.07);
 }
 
-/* ---- shell (green) ---- */
+/* expanding "Claude" label — hidden at rest, slides in on hover */
+.agent-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  max-width: 0;
+  overflow: hidden;
+  opacity: 0;
+  margin-left: 0;
+  transition: max-width 200ms var(--ease), opacity 140ms var(--ease),
+              margin-left 200ms var(--ease);
+}
+.action-btn.agent-btn:hover .agent-label {
+  max-width: 52px;
+  opacity: 1;
+  margin-left: 5px;
+}
+
+/* ---- shell — monochrome ---- */
 .action-btn.shell-btn {
-  background: linear-gradient(145deg, #143b26 0%, #0b2418 100%);
-  border-color: rgba(63, 185, 80, 0.32);
-  color: #5dba7a;
-  animation: glow-green 3.8s ease-in-out infinite;
+  background: linear-gradient(145deg, #252525 0%, #171717 100%);
+  border-color: rgba(160, 160, 160, 0.18);
+  color: #686868;
+  animation: glow-shell 3.8s ease-in-out infinite;
   animation-delay: 1.26s;
 }
 .action-btn.shell-btn::before {
   animation-delay: 1.26s;
 }
 .action-btn.shell-btn:hover {
-  background: linear-gradient(145deg, #1e5c3a 0%, #143b26 100%);
-  color: #a0e8b8;
+  background: linear-gradient(145deg, #333333 0%, #252525 100%);
+  border-color: rgba(200, 200, 200, 0.35);
+  color: #c8c8c8;
   animation: none;
-  box-shadow: 0 0 0 1px rgba(63, 185, 80, 0.6),
-              0 0 18px rgba(63, 185, 80, 0.24),
-              inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  box-shadow: 0 0 0 1px rgba(200, 200, 200, 0.28),
+              0 0 14px rgba(200, 200, 200, 0.1),
+              inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
-/* ---- workspace (purple) ---- */
-.action-btn.ws-btn {
-  background: linear-gradient(145deg, #2a1a42 0%, #1a0e2e 100%);
-  border-color: rgba(188, 140, 255, 0.32);
-  color: #b08ae0;
-  animation: glow-purple 3.8s ease-in-out infinite;
-  animation-delay: 2.52s;
+/* ---- glow keyframes ---- */
+@keyframes glow-claude {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(217, 119, 87, 0.16); }
+  50%       { box-shadow: 0 0 0 1px rgba(217, 119, 87, 0.48), 0 0 14px rgba(217, 119, 87, 0.18); }
 }
-.action-btn.ws-btn::before {
-  animation-delay: 2.52s;
-}
-.action-btn.ws-btn:hover {
-  background: linear-gradient(145deg, #3e2860 0%, #2a1a42 100%);
-  color: #ddc4ff;
-  animation: none;
-  box-shadow: 0 0 0 1px rgba(188, 140, 255, 0.6),
-              0 0 18px rgba(188, 140, 255, 0.22),
-              inset 0 1px 0 rgba(255, 255, 255, 0.07);
-}
-
-/* ---- glow keyframes (staggered via delay above) ---- */
-@keyframes glow-blue {
-  0%, 100% {
-    box-shadow: 0 0 0 1px rgba(76, 141, 255, 0.2);
-  }
-  50% {
-    box-shadow: 0 0 0 1px rgba(76, 141, 255, 0.55),
-                0 0 14px rgba(76, 141, 255, 0.22);
-  }
-}
-@keyframes glow-green {
-  0%, 100% {
-    box-shadow: 0 0 0 1px rgba(63, 185, 80, 0.18);
-  }
-  50% {
-    box-shadow: 0 0 0 1px rgba(63, 185, 80, 0.52),
-                0 0 14px rgba(63, 185, 80, 0.2);
-  }
-}
-@keyframes glow-purple {
-  0%, 100% {
-    box-shadow: 0 0 0 1px rgba(188, 140, 255, 0.18);
-  }
-  50% {
-    box-shadow: 0 0 0 1px rgba(188, 140, 255, 0.52),
-                0 0 14px rgba(188, 140, 255, 0.2);
-  }
+@keyframes glow-shell {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(160, 160, 160, 0.1); }
+  50%       { box-shadow: 0 0 0 1px rgba(200, 200, 200, 0.32), 0 0 12px rgba(200, 200, 200, 0.08); }
 }
 
 .action-btn.lg {

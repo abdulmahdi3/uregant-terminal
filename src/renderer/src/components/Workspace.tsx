@@ -16,13 +16,25 @@ function clampSplits(node: MosaicNode<string> | null): MosaicNode<string> | null
     second: clampSplits(node.second) as MosaicNode<string>
   }
 }
-import { Bot, Terminal, SquareDashed, Send, Columns2, Rows2, X } from 'lucide-react'
+import { Bot, Terminal, SquareDashed, Send, Columns2, Rows2, X, Camera, History } from 'lucide-react'
 import clsx from 'clsx'
 import { useWorkspace } from '@renderer/store/workspace'
 import { useUi } from '@renderer/store/ui'
 import { useTokens, formatTokens } from '@renderer/store/tokens'
+import { useSessions } from '@renderer/store/sessions'
+import { toast } from '@renderer/store/toasts'
 import PaneView from './PaneView'
 import 'react-mosaic-component/react-mosaic-component.css'
+
+function relTime(ts: number): string {
+  const s = Math.floor((Date.now() - ts) / 1000)
+  if (s < 60) return 'just now'
+  const m = Math.floor(s / 60)
+  if (m < 60) return `${m}m ago`
+  const h = Math.floor(m / 60)
+  if (h < 24) return `${h}h ago`
+  return `${Math.floor(h / 24)}d ago`
+}
 
 function PaneIcon({ paneId, size = 14 }: { paneId: string; size?: number }): JSX.Element {
   const type = useWorkspace((s) => s.panes[paneId]?.type)
@@ -170,6 +182,15 @@ const PaneHeader = forwardRef<HTMLDivElement, { paneId: string }>(function PaneH
         >
           <Send size={13} />
         </button>
+        {linked && (
+          <button
+            className="icon-btn"
+            title="Screenshot this pane → Telegram"
+            onClick={() => void window.api.screenshotPane(paneId)}
+          >
+            <Camera size={13} />
+          </button>
+        )}
         <button
           className="icon-btn"
           title="Split right (duplicate session)"
@@ -199,15 +220,18 @@ export default function Workspace(): JSX.Element {
   const addPane = useWorkspace((s) => s.addPane)
   const zoomedPaneId = useUi((s) => s.zoomedPaneId)
   const setZoomedPaneId = useUi((s) => s.setZoomedPaneId)
+  const sessions = useSessions((s) => s.sessions)
+  const restore = useSessions((s) => s.restore)
 
   if (layout === null) {
+    const recentSessions = sessions.slice(0, 4)
     return (
       <div className="workspace-empty">
         <div className="empty-hero">
           <div className="empty-icon-wrap">
             <Bot size={28} strokeWidth={1.3} />
           </div>
-          <h2 className="empty-title">uregant</h2>
+          <h2 className="empty-title">urterminal</h2>
           <p className="empty-sub">AI agent + shell workspace</p>
         </div>
         <div className="empty-actions">
@@ -224,6 +248,26 @@ export default function Workspace(): JSX.Element {
             <span className="eac-key">Ctrl+Shift+S</span>
           </button>
         </div>
+        {recentSessions.length > 0 && (
+          <div className="empty-sessions">
+            <div className="es-header">
+              <History size={13} />
+              <span>Recent sessions</span>
+            </div>
+            <div className="es-list">
+              {recentSessions.map(s => (
+                <button
+                  key={s.id}
+                  className="es-row"
+                  onClick={() => { restore(s.id); toast(`Restored: ${s.name}`, 'ok') }}
+                >
+                  <span className="es-name">{s.name}</span>
+                  <span className="es-meta">{s.paneCount} pane{s.paneCount !== 1 ? 's' : ''} · {relTime(s.savedAt)}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
         <div className="empty-footer">
           <span><kbd>Ctrl</kbd>+<kbd>K</kbd> command palette</span>
         </div>
@@ -237,7 +281,7 @@ export default function Workspace(): JSX.Element {
       <div className="zoom-host">
         <div className="zoom-pane">
           <PaneHeader paneId={zoomedPaneId} />
-          <div className="zoom-body">
+          <div className="zoom-body pane-capture" data-pane-id={zoomedPaneId}>
             <PaneView paneId={zoomedPaneId} />
           </div>
         </div>
@@ -263,7 +307,9 @@ export default function Workspace(): JSX.Element {
             </div>
           )}
         >
-          <PaneView paneId={id} />
+          <div className="pane-capture" data-pane-id={id}>
+            <PaneView paneId={id} />
+          </div>
         </MosaicWindow>
       )}
     />

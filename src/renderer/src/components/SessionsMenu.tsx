@@ -52,7 +52,7 @@ export default function SessionsMenu(): JSX.Element {
   return (
     <div className="sessions-wrap" ref={wrapRef} data-nodrag>
       <button
-        className={clsx('action-btn sessions-btn', open && 'active')}
+        className={clsx('icon-btn sessions-btn', open && 'active')}
         title="Saved sessions"
         onClick={() => setOpen((v) => !v)}
       >

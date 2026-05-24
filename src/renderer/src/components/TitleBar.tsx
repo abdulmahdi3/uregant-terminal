@@ -1,11 +1,30 @@
 import { useState } from 'react'
-import { Bot, Terminal, Settings, Command as CommandIcon, Layers, X } from 'lucide-react'
+import { Terminal, Settings, Command as CommandIcon, Layers, X } from 'lucide-react'
 import clsx from 'clsx'
 import { useWorkspace } from '@renderer/store/workspace'
 import { useUi } from '@renderer/store/ui'
 import { useWorkspaces } from '@renderer/store/workspaces'
 import type { WorkspaceEntry } from '@renderer/store/workspaces'
 import SessionsMenu from './SessionsMenu'
+
+function AppLogo(): JSX.Element {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="brand-logo">
+      <rect x="2" y="3" width="20" height="18" rx="3.5" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M6 8.5l4 3.5-4 3.5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M13.5 15.5h4.5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+function ClaudeIcon({ size = 13 }: { size?: number }): JSX.Element {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 2.5L3.8 7.5v9L12 21.5l8.2-5v-9L12 2.5z" opacity="0.92" />
+      <path d="M12 7L7.5 9.75v4.5L12 17l4.5-2.75v-4.5L12 7z" fill="currentColor" opacity="0.35" />
+    </svg>
+  )
+}
 
 const MAX_TABS = 4
 
@@ -95,30 +114,34 @@ export default function TitleBar(): JSX.Element {
   return (
     <header className="titlebar">
       <div className="titlebar-left" data-nodrag>
-        <Terminal size={15} className="brand-icon" />
-        <span className="brand-name">uregant</span>
+        {/* Brand */}
+        <AppLogo />
+        <span className="brand-name">urterminal</span>
 
         <div className="titlebar-sep" />
 
-        <button className="icon-btn" title="Command palette (Ctrl+K)" onClick={togglePalette}>
-          <CommandIcon size={14} />
-        </button>
+        {/* Controls */}
         <button className="icon-btn" title="Settings (Ctrl+,)" onClick={() => setShowSettings(true)}>
           <Settings size={14} />
         </button>
+        <button className="icon-btn" title="Command palette (Ctrl+K)" onClick={togglePalette}>
+          <CommandIcon size={14} />
+        </button>
+        <button className="icon-btn" title="New workspace" onClick={addWorkspace}>
+          <Layers size={14} />
+        </button>
+        <SessionsMenu />
 
         <div className="titlebar-sep" />
 
+        {/* New pane actions */}
         <button className="action-btn agent-btn" title="New agent pane" onClick={() => addPane('ai')}>
-          <Bot size={13} />
+          <ClaudeIcon size={13} />
+          <span className="agent-label">Claude</span>
         </button>
         <button className="action-btn shell-btn" title="New shell pane" onClick={() => addPane('shell')}>
           <Terminal size={13} />
         </button>
-        <button className="action-btn ws-btn" title="New workspace" onClick={addWorkspace}>
-          <Layers size={13} />
-        </button>
-        <SessionsMenu />
       </div>
 
       <div className="titlebar-drag" />

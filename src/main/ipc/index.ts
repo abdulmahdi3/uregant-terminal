@@ -37,6 +37,7 @@ export function registerIpc(getWindow: () => BrowserWindow | null): IpcContext {
 
   const telegram = new TelegramBridge(
     settings,
+    getWindow,
     (inbound) => emit(IPC.telegramInbound, inbound),
     () => {
       // surface running state by pushing a fresh public settings snapshot
@@ -235,6 +236,13 @@ export function registerIpc(getWindow: () => BrowserWindow | null): IpcContext {
       /* disk errors are non-fatal */
     }
   })
+
+  // ---- pane registry (renderer → main sync for Telegram /panes command) ----
+  ipcMain.handle(IPC.panesUpdate, (_e, panes) => telegram.setPaneRegistry(panes))
+
+  // ---- screenshots → Telegram ----
+  ipcMain.handle(IPC.screenshotPane, (_e, paneId: string) => telegram.screenshotPane(paneId))
+  ipcMain.handle(IPC.screenshotWindow, () => telegram.screenshotWindow())
 
   // start the bot if a token is already configured
   void telegram.start()

@@ -24,7 +24,7 @@ function createWindow(): void {
       height: 40
     },
     backgroundColor: '#0b0d12',
-    title: 'uregant-terminal',
+    title: 'urterminal',
     autoHideMenuBar: true,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),

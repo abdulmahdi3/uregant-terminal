@@ -1,5 +1,6 @@
-import { Bot } from 'grammy'
-import type { TelegramStatus, TelegramInbound } from '@shared/types'
+import { Bot, InputFile } from 'grammy'
+import { BrowserWindow } from 'electron'
+import type { TelegramStatus, TelegramInbound, PaneInfo } from '@shared/types'
 import type { SettingsStore } from '../settings/store'
 
 const FLUSH_MS = 1200
@@ -43,9 +44,12 @@ export class TelegramBridge {
   private flushTimer: NodeJS.Timeout | null = null
   /** chatId -> message_id of the transient "working" placeholder, if any */
   private working = new Map<string, number>()
+  /** Current pane layout snapshot, updated by renderer on every workspace change */
+  private paneRegistry: PaneInfo[] = []
 
   constructor(
     private settings: SettingsStore,
+    private getWindow: () => BrowserWindow | null,
     private emitInbound: EmitInbound,
     private emitStatus: EmitStatus
   ) {}
@@ -106,6 +110,28 @@ export class TelegramBridge {
   linkPane(paneId: string, chatId: string | null): void {
     if (chatId) this.links.set(paneId, chatId)
     else this.links.delete(paneId)
+  }
+
+  setPaneRegistry(panes: PaneInfo[]): void {
+    this.paneRegistry = panes
+  }
+
+  /** Called via IPC when the pane header camera button is clicked. */
+  async screenshotPane(paneId: string): Promise<void> {
+    const chatId = this.links.get(paneId)
+    if (!chatId || !this.bot) return
+    const win = this.getWindow()
+    if (!win) return
+    await this._capturePane(chatId, win, paneId)
+  }
+
+  /** Called via IPC for a full-window screenshot, sent to the default chat. */
+  async screenshotWindow(): Promise<void> {
+    const chatId = this.settings.getTelegramDefaultChat()
+    if (!chatId || !this.bot) return
+    const win = this.getWindow()
+    if (!win) return
+    await this._captureWindow(chatId, win)
   }
 
   /**
@@ -186,28 +212,137 @@ export class TelegramBridge {
   }
 
   private handleInbound(chatId: string, text: string): void {
-    // `/pane <id> <text>` overrides routing; otherwise reverse-lookup the link.
+    const trimmed = text.trim()
+
+    // ---- bot commands ----
+    if (trimmed === '/panes' || trimmed === '/panes@' + (this.status.botUsername ?? '')) {
+      void this.cmdPanes(chatId)
+      return
+    }
+    if (trimmed === '/help') {
+      void this.cmdHelp(chatId)
+      return
+    }
+    if (trimmed === '/screenshot' || trimmed.startsWith('/screenshot ')) {
+      const arg = trimmed.split(/\s+/)[1]
+      void this.cmdScreenshot(chatId, arg)
+      return
+    }
+
+    // ---- pane routing (existing behaviour) ----
     let paneId: string | undefined
-    let body = text
-    const m = text.match(/^\/pane\s+(\S+)\s+([\s\S]+)$/)
+    let body = trimmed
+    const m = trimmed.match(/^\/pane\s+(\S+)\s+([\s\S]+)$/)
     if (m) {
       paneId = m[1]
       body = m[2]
     } else {
       for (const [pid, cid] of this.links) {
-        if (cid === chatId) {
-          paneId = pid
-          break
-        }
+        if (cid === chatId) { paneId = pid; break }
       }
     }
     if (!paneId) {
       void this.bot?.api.sendMessage(
         chatId,
-        'No pane linked to this chat. Use /pane <paneId> <message> or link a pane in the app.'
+        'No pane linked to this chat.\nUse /pane <paneId> <message> or link a pane in the app.\n\nType /help for all commands.'
       )
       return
     }
     this.emitInbound({ paneId, text: body, chatId })
+  }
+
+  // ---- command handlers ----
+
+  private async cmdPanes(chatId: string): Promise<void> {
+    if (!this.bot) return
+    if (this.paneRegistry.length === 0) {
+      await this.bot.api.sendMessage(chatId, '📭 No panes are currently open.')
+      return
+    }
+    const lines = this.paneRegistry.map(p => {
+      const icon = p.type === 'ai' ? '🤖' : p.type === 'shell' ? '🖥' : '▫️'
+      const detail = p.agentCommand ? ` · ${p.agentCommand}` : p.shellName ? ` · ${p.shellName}` : ''
+      const linked = p.linkedChatId === chatId ? ' 📡' : p.linkedChatId ? ' 🔗' : ''
+      return `${p.number}. ${icon} ${p.title}${detail}${linked}`
+    })
+    const footer = '\n\n/screenshot — full window\n/screenshot <n> — single pane'
+    await this.bot.api.sendMessage(chatId, `Open panes (${this.paneRegistry.length}):\n${lines.join('\n')}${footer}`)
+  }
+
+  private async cmdHelp(chatId: string): Promise<void> {
+    if (!this.bot) return
+    await this.bot.api.sendMessage(chatId, [
+      '📟 urterminal Bot Commands',
+      '',
+      '/panes — list open panes',
+      '/screenshot — capture full terminal window',
+      '/screenshot <n> — capture pane number n',
+      '/pane <id> <text> — send text to a specific pane'
+    ].join('\n'))
+  }
+
+  private async cmdScreenshot(chatId: string, arg?: string): Promise<void> {
+    if (!this.bot) return
+    const win = this.getWindow()
+    if (!win) { await this.bot.api.sendMessage(chatId, '❌ App window not available.'); return }
+
+    if (arg) {
+      const n = parseInt(arg, 10)
+      const pane = isNaN(n) ? undefined : this.paneRegistry.find(p => p.number === n)
+      if (!pane) {
+        await this.bot.api.sendMessage(chatId, `❌ Pane ${arg} not found. Use /panes to see open panes.`)
+        return
+      }
+      await this._capturePane(chatId, win, pane.id, pane.title)
+    } else {
+      await this._captureWindow(chatId, win)
+    }
+  }
+
+  private async _capturePane(
+    chatId: string, win: BrowserWindow, paneId: string, title?: string
+  ): Promise<void> {
+    if (!this.bot) return
+    try {
+      type RectInfo = { x: number; y: number; width: number; height: number; dpr: number }
+      const rect = await win.webContents.executeJavaScript(
+        `(function(){
+          var el=document.querySelector('[data-pane-id="${paneId}"]');
+          if(!el)return null;
+          var r=el.getBoundingClientRect();
+          return{x:r.left,y:r.top,width:r.width,height:r.height,dpr:window.devicePixelRatio||1};
+        })()`
+      ) as RectInfo | null
+
+      if (!rect || rect.width === 0 || rect.height === 0) {
+        await this.bot.api.sendMessage(chatId, '❌ Could not locate the pane on screen.')
+        return
+      }
+      const { x, y, width, height, dpr } = rect
+      const img = await win.capturePage({
+        x: Math.round(x * dpr), y: Math.round(y * dpr),
+        width: Math.round(width * dpr), height: Math.round(height * dpr)
+      })
+      const buf = img.toPNG()
+      if (!buf.length) { await this.bot.api.sendMessage(chatId, '❌ Screenshot was empty.'); return }
+      const caption = title ? `📸 ${title}` : '📸 Pane screenshot'
+      await this.bot.api.sendPhoto(chatId, new InputFile(buf, 'pane.png'), { caption })
+    } catch (err) {
+      await this.bot.api.sendMessage(chatId, `❌ Screenshot failed: ${(err as Error).message}`)
+    }
+  }
+
+  private async _captureWindow(chatId: string, win: BrowserWindow): Promise<void> {
+    if (!this.bot) return
+    try {
+      const img = await win.capturePage()
+      const buf = img.toPNG()
+      if (!buf.length) { await this.bot.api.sendMessage(chatId, '❌ Screenshot was empty.'); return }
+      await this.bot.api.sendPhoto(chatId, new InputFile(buf, 'terminal.png'), {
+        caption: '📸 Full terminal window'
+      })
+    } catch (err) {
+      await this.bot.api.sendMessage(chatId, `❌ Screenshot failed: ${(err as Error).message}`)
+    }
   }
 }

@@ -17,6 +17,7 @@ import { useHotkeys } from './hooks/useHotkeys'
 import { usePersistence } from './hooks/usePersistence'
 import { useChainForwarding } from './hooks/useChainForwarding'
 import { useTelegramForwarding } from './hooks/useTelegramForwarding'
+import { usePaneRegistry } from './hooks/usePaneRegistry'
 import { installChatStream } from './lib/chat'
 
 export default function App(): JSX.Element {
@@ -27,6 +28,7 @@ export default function App(): JSX.Element {
   usePersistence()
   useChainForwarding()
   useTelegramForwarding()
+  usePaneRegistry()
 
   useEffect(() => {
     installChatStream()

@@ -16,7 +16,8 @@ import type {
   TelegramInbound,
   PerfSample,
   FileSaveRequest,
-  FileSaveResult
+  FileSaveResult,
+  PaneInfo
 } from '@shared/types'
 
 /** Subscribe helper that returns an unsubscribe fn and strips the IpcRenderer event arg. */
@@ -100,7 +101,17 @@ const api = {
 
   // ---- directory picker ----
   pickDirectory: (defaultPath?: string): Promise<string | null> =>
-    ipcRenderer.invoke(IPC.dialogOpenDir, defaultPath)
+    ipcRenderer.invoke(IPC.dialogOpenDir, defaultPath),
+
+  // ---- pane registry (keeps main process in sync for Telegram /panes) ----
+  updatePaneRegistry: (panes: PaneInfo[]): Promise<void> =>
+    ipcRenderer.invoke(IPC.panesUpdate, panes),
+
+  // ---- screenshots → Telegram ----
+  screenshotPane: (paneId: string): Promise<void> =>
+    ipcRenderer.invoke(IPC.screenshotPane, paneId),
+  screenshotWindow: (): Promise<void> =>
+    ipcRenderer.invoke(IPC.screenshotWindow)
 }
 
 export type UregantApi = typeof api

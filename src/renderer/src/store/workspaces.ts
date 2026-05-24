@@ -25,7 +25,7 @@ interface WorkspacesState {
 const firstId = uid()
 
 export const useWorkspaces = create<WorkspacesState>((set, get) => ({
-  list: [{ id: firstId, name: 'uregant-terminal' }],
+  list: [{ id: firstId, name: 'urterminal' }],
   activeId: firstId,
   _counter: 0,
 
