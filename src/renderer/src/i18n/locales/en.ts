@@ -1,6 +1,6 @@
 export default {
   app: {
-    title: 'urterminal'
+    title: 'URterminal'
   },
   toolbar: {
     addAi: 'Add AI pane',

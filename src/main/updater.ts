@@ -35,7 +35,7 @@ export function initAutoUpdate(getWindow: () => BrowserWindow | null): void {
         defaultId: 0,
         cancelId: 1,
         title: 'Update ready',
-        message: `urterminal ${info.version} has been downloaded.`,
+        message: `URterminal ${info.version} has been downloaded.`,
         detail: 'Restart the app to apply the update. It will also install automatically next time you quit.'
       })
       .then(({ response }) => {

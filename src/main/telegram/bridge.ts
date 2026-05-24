@@ -272,7 +272,7 @@ export class TelegramBridge {
   private async cmdHelp(chatId: string): Promise<void> {
     if (!this.bot) return
     await this.bot.api.sendMessage(chatId, [
-      '📟 urterminal Bot Commands',
+      '📟 URterminal Bot Commands',
       '',
       '/panes — list open panes',
       '/screenshot — capture full terminal window',

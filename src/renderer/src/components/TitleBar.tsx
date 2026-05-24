@@ -116,7 +116,7 @@ export default function TitleBar(): JSX.Element {
       <div className="titlebar-left" data-nodrag>
         {/* Brand */}
         <AppLogo />
-        <span className="brand-name">urterminal</span>
+        <span className="brand-name">URterminal</span>
 
         <div className="titlebar-sep" />
 

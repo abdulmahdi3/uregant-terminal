@@ -231,7 +231,7 @@ export default function Workspace(): JSX.Element {
           <div className="empty-icon-wrap">
             <Bot size={28} strokeWidth={1.3} />
           </div>
-          <h2 className="empty-title">urterminal</h2>
+          <h2 className="empty-title">URterminal</h2>
           <p className="empty-sub">AI agent + shell workspace</p>
         </div>
         <div className="empty-actions">
