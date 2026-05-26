@@ -32,6 +32,13 @@ function applyAccentColor(hex: string): void {
 }
 
 function applySideEffects(s: SettingsPublic): void {
+  // Mirror auto-restore to localStorage so usePersistence can read it
+  // synchronously at startup, before this async settings load resolves.
+  try {
+    localStorage.setItem('urterminal.autoRestore', s.prefs.autoRestore ? '1' : '0')
+  } catch {
+    /* ignore */
+  }
   // Single refined dark theme — no in-face theme switcher by design.
   document.documentElement.setAttribute('data-theme', 'dark')
   document.documentElement.setAttribute('dir', s.language === 'ar' ? 'rtl' : 'ltr')

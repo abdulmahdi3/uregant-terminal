@@ -366,6 +366,19 @@ export default function SettingsModal(): JSX.Element | null {
             </label>
           </section>
 
+          {/* Startup */}
+          <section className="settings-section">
+            <h3>Startup</h3>
+            <label className="settings-toggle">
+              <input
+                type="checkbox"
+                checked={!!settings.prefs.autoRestore}
+                onChange={(e) => patch({ prefs: { autoRestore: e.target.checked } })}
+              />
+              <span>Reopen the last workspace (panes + layout) on launch</span>
+            </label>
+          </section>
+
           {/* Snippets */}
           <section className="settings-section">
             <h3>Snippets</h3>

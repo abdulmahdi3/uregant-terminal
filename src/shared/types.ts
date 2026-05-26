@@ -104,7 +104,7 @@ export const DEFAULT_PREFS: AppPrefs = {
   telegramChatWhitelist: [],
   fontFamily: '',
   fontSize: 13,
-  autoRestore: false,
+  autoRestore: true,
   snippets: [],
   templates: []
 }

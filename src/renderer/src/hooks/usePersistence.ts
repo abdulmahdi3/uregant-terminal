@@ -24,9 +24,12 @@ function sanitize(panes: Record<string, Pane>): Record<string, Pane> {
 }
 
 export function usePersistence(): void {
-  // Restore once on mount.
+  // Restore once on mount, unless the user disabled auto-restore. The flag is
+  // mirrored to localStorage by the settings store so it's readable here before
+  // the async settings load resolves (absent = on, preserving prior behavior).
   useEffect(() => {
     try {
+      if (localStorage.getItem('urterminal.autoRestore') === '0') return
       const raw = localStorage.getItem(KEY)
       if (!raw) return
       const data = JSON.parse(raw) as Persisted
