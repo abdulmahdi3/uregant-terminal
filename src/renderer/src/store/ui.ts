@@ -9,6 +9,7 @@ interface UiState {
   showShortcuts: boolean
   showPipeMode: boolean
   showTaskManager: boolean
+  showAskAll: boolean
   linkingPaneId: string | null
   /** when set, only this pane is rendered (zoom / maximize) */
   zoomedPaneId: string | null
@@ -25,6 +26,7 @@ interface UiState {
   togglePipeMode: () => void
   setShowTaskManager: (v: boolean) => void
   toggleTaskManager: () => void
+  setShowAskAll: (v: boolean) => void
   setLinkingPaneId: (id: string | null) => void
   setZoomedPaneId: (id: string | null) => void
   setDraggingPane: (id: string | null) => void
@@ -42,6 +44,7 @@ const ALL_CLOSED = {
   showShortcuts: false,
   showPipeMode: false,
   showTaskManager: false,
+  showAskAll: false,
   linkingPaneId: null as string | null
 }
 
@@ -51,6 +54,7 @@ export const useUi = create<UiState>((set, get) => ({
   showShortcuts: false,
   showPipeMode: false,
   showTaskManager: false,
+  showAskAll: false,
   linkingPaneId: null,
   zoomedPaneId: null,
   draggingPaneId: null,
@@ -76,6 +80,7 @@ export const useUi = create<UiState>((set, get) => ({
     set((s) =>
       s.showTaskManager ? { showTaskManager: false } : { ...ALL_CLOSED, showTaskManager: true }
     ),
+  setShowAskAll: (v) => set(v ? { ...ALL_CLOSED, showAskAll: true } : { showAskAll: false }),
   setLinkingPaneId: (id) => set(id ? { ...ALL_CLOSED, linkingPaneId: id } : { linkingPaneId: null }),
   setZoomedPaneId: (id) => set({ zoomedPaneId: id }),
   setDraggingPane: (id) => set({ draggingPaneId: id }),
@@ -93,6 +98,7 @@ export const useUi = create<UiState>((set, get) => ({
       showShortcuts: false,
       showPipeMode: false,
       showTaskManager: false,
+      showAskAll: false,
       linkingPaneId: null
     })
 }))

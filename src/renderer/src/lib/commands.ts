@@ -150,6 +150,12 @@ export function getCommands(): Command[] {
       shortcut: 'Ctrl+Enter',
       run: () => broadcastActiveLine()
     },
+    {
+      id: 'agent.askAll',
+      title: 'Ask all agents… (compare answers)',
+      group: 'Agent',
+      run: () => ui().setShowAskAll(true)
+    },
 
     // ---- agent ----
     {

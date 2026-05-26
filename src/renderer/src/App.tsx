@@ -8,6 +8,7 @@ import ShortcutsModal from './components/ShortcutsModal'
 import SettingsModal from './components/SettingsModal'
 import TelegramLinkModal from './components/TelegramLinkModal'
 import TaskManagerModal from './components/TaskManagerModal'
+import AskAllModal from './components/AskAllModal'
 import Toaster from './components/Toaster'
 import CopiedFlash from './components/CopiedFlash'
 import { useSettings } from './store/settings'
@@ -69,6 +70,7 @@ export default function App(): JSX.Element {
       <SettingsModal />
       <TelegramLinkModal />
       <TaskManagerModal />
+      <AskAllModal />
       <ShortcutsModal />
       <Toaster />
       <CopiedFlash />

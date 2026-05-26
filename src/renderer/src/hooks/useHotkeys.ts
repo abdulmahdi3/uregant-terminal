@@ -32,7 +32,13 @@ export function useHotkeys(): void {
 
       // Escape: close overlays → exit zoom.
       if (e.key === 'Escape') {
-        if (ui.showCommandPalette || ui.showSettings || ui.showShortcuts || ui.linkingPaneId) {
+        if (
+          ui.showCommandPalette ||
+          ui.showSettings ||
+          ui.showShortcuts ||
+          ui.showAskAll ||
+          ui.linkingPaneId
+        ) {
           ui.closeOverlays()
           return
         }
