@@ -29,6 +29,8 @@ const B_CHAT       = '💬 Chat with pane'
 const B_RUN        = '▶️ New pane'
 const B_BACK       = '‹ Back'
 const B_EXIT_CHAT  = '🚪 Exit chat'
+const B_DEFAULT_FOLDER = '🏠 Default folder'
+const B_TYPE_PATH      = '✏️ Type a path'
 
 // Friendly shell aliases accepted by /run, mapped to a shell binary.
 const SHELL_ALIASES: Record<string, string> = {
@@ -59,6 +61,8 @@ export class TelegramBridge {
   private paneRegistry: PaneInfo[] = []
   /** chatId → current interaction mode */
   private userMode = new Map<string, UserMode>()
+  /** recently used launch folders (newest first), offered as buttons in /run */
+  private recentFolders: string[] = []
 
   constructor(
     private settings: SettingsStore,
@@ -254,6 +258,52 @@ export class TelegramBridge {
     return new Keyboard().text(B_EXIT_CHAT).resized().persistent()
   }
 
+  /** Program picker for a new pane — agents + shells as buttons (no typing). */
+  private runAgentKb(): Keyboard {
+    const kb = new Keyboard()
+    AGENTS.forEach((a, i) => {
+      kb.text(a)
+      if (i % 2 === 1) kb.row()
+    })
+    if (AGENTS.length % 2 === 1) kb.row()
+    kb.text('powershell').text('cmd').row()
+    kb.text('wsl').text('bash').row()
+    kb.text(B_BACK)
+    return kb.resized().persistent()
+  }
+
+  /** Folder picker — shows the actual paths as buttons so the user never types. */
+  private runFolderKb(candidates: string[]): Keyboard {
+    const kb = new Keyboard()
+    for (const c of candidates) kb.text(c).row()
+    kb.text(B_DEFAULT_FOLDER).text(B_TYPE_PATH).row()
+    kb.text(B_BACK)
+    return kb.resized().persistent()
+  }
+
+  /** Unique launch-folder suggestions: recent folders + currently open panes' cwds. */
+  private folderCandidates(): string[] {
+    const fromPanes = this.paneRegistry
+      .map((p) => p.cwd)
+      .filter((c): c is string => !!c && c.trim().length > 0)
+    const seen = new Set<string>()
+    const out: string[] = []
+    for (const f of [...this.recentFolders, ...fromPanes]) {
+      const key = f.trim()
+      if (!key || seen.has(key)) continue
+      seen.add(key)
+      out.push(key)
+      if (out.length >= 6) break
+    }
+    return out
+  }
+
+  private rememberFolder(cwd?: string): void {
+    const f = cwd?.trim()
+    if (!f) return
+    this.recentFolders = [f, ...this.recentFolders.filter((x) => x !== f)].slice(0, 6)
+  }
+
   // ---- main text dispatcher ----
 
   private async handleText(
@@ -273,14 +323,56 @@ export class TelegramBridge {
       return
     }
 
-    // ---- entering the command to open a pane ----
-    if (mode === 'run_pick') {
+    // ---- new pane: step 1, pick the program (agent/shell) ----
+    if (mode === 'run_agent') {
       if (text === B_BACK) {
         this.userMode.set(chatId, 'main')
         await reply('Main menu:', this.mainKb())
         return
       }
-      await this.cmdRun(chatId, text, reply)
+      const head = text.toLowerCase()
+      const sel = (AGENTS as readonly string[]).includes(head)
+        ? { type: 'ai' as const, cmd: head }
+        : SHELL_ALIASES[head]
+          ? { type: 'shell' as const, cmd: head }
+          : null
+      if (!sel) {
+        await reply('❌ Pick a program from the buttons:', this.runAgentKb())
+        return
+      }
+      this.userMode.set(chatId, `run_folder:${sel.type}:${sel.cmd}`)
+      await reply(`📂 Choose a folder for ${sel.cmd}:`, this.runFolderKb(this.folderCandidates()))
+      return
+    }
+
+    // ---- new pane: step 2, pick the folder (shown as buttons, not typed) ----
+    if (mode.startsWith('run_folder:')) {
+      const [, type, cmd] = mode.split(':')
+      if (text === B_BACK) {
+        this.userMode.set(chatId, 'run_agent')
+        await reply('▶️ Choose a program:', this.runAgentKb())
+        return
+      }
+      if (text === B_TYPE_PATH) {
+        this.userMode.set(chatId, `run_type:${type}:${cmd}`)
+        await reply('✏️ Send the folder path:', new Keyboard().text(B_BACK).resized().persistent())
+        return
+      }
+      const cwd = text === B_DEFAULT_FOLDER ? undefined : text
+      await this.createPaneFromPick(chatId, type as 'ai' | 'shell', cmd, cwd, reply)
+      this.userMode.set(chatId, 'main')
+      return
+    }
+
+    // ---- new pane: optional manual path entry ----
+    if (mode.startsWith('run_type:')) {
+      const [, type, cmd] = mode.split(':')
+      if (text === B_BACK) {
+        this.userMode.set(chatId, 'main')
+        await reply('Main menu:', this.mainKb())
+        return
+      }
+      await this.createPaneFromPick(chatId, type as 'ai' | 'shell', cmd, text, reply)
       this.userMode.set(chatId, 'main')
       return
     }
@@ -348,14 +440,8 @@ export class TelegramBridge {
         await reply('💬 Choose a pane to chat with:', this.panePickerKb())
         break
       case B_RUN:
-        this.userMode.set(chatId, 'run_pick')
-        await reply(
-          '▶️ Send: <agent|shell> [folder]\n' +
-            `Agents: ${AGENTS.join(', ')}\n` +
-            'Shells: powershell, cmd, wsl, bash\n' +
-            'e.g. claude C:\\projects\\app',
-          new Keyboard().text(B_BACK).resized().persistent()
-        )
+        this.userMode.set(chatId, 'run_agent')
+        await reply('▶️ Choose a program:', this.runAgentKb())
         break
       default:
         await reply('URterminal — choose an action:', this.mainKb())
@@ -404,9 +490,28 @@ export class TelegramBridge {
       )
       return
     }
+    this.rememberFolder(parsed.cwd)
     this.emitCreatePane({ ...parsed, chatId })
     const what = parsed.type === 'ai' ? parsed.agentCommand : parsed.shell
     await reply(`▶️ Opening ${what}${parsed.cwd ? ` in ${parsed.cwd}` : ''}…`, this.mainKb())
+  }
+
+  /** Create a pane from the button-driven picker (program + chosen/typed folder). */
+  private async createPaneFromPick(
+    chatId: string,
+    type: 'ai' | 'shell',
+    cmd: string,
+    cwd: string | undefined,
+    reply: (t: string, kb?: Keyboard) => Promise<unknown>
+  ): Promise<void> {
+    const folder = cwd?.trim() || undefined
+    const req: Omit<TelegramCreatePane, 'chatId'> =
+      type === 'ai'
+        ? { type: 'ai', agentCommand: cmd, cwd: folder }
+        : { type: 'shell', shell: SHELL_ALIASES[cmd] ?? cmd, cwd: folder }
+    this.rememberFolder(folder)
+    this.emitCreatePane({ ...req, chatId })
+    await reply(`▶️ Opening ${cmd}${folder ? ` in ${folder}` : ''}…`, this.mainKb())
   }
 
   private async cmdScreenshot(chatId: string): Promise<void> {

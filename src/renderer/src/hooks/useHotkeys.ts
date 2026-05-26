@@ -37,10 +37,14 @@ export function useHotkeys(): void {
         return
       }
 
-      // Escape: close search → overlays → exit zoom.
+      // Escape: close search → clear pane selection → overlays → exit zoom.
       if (e.key === 'Escape') {
         if (ui.searchOpen) {
           ui.setSearchOpen(false)
+          return
+        }
+        if (useWorkspace.getState().selectedPaneIds.length) {
+          useWorkspace.getState().clearPaneSelection()
           return
         }
         if (
@@ -129,7 +133,24 @@ export function useHotkeys(): void {
       }
     }
 
+    // A plain click anywhere drops the pane selection. A drag-to-move ends with
+    // a 'dragend' (no 'click' is dispatched), so moving panes is unaffected.
+    const onClick = (): void => {
+      const ws = useWorkspace.getState()
+      if (ws.selectedPaneIds.length) ws.clearPaneSelection()
+    }
+
+    // Safety net: always drop the cross-workspace drag state when any drag ends
+    // (a mosaic rearrange can otherwise leave the "new workspace" affordance up).
+    const onDragEnd = (): void => useUi.getState().setDraggingPanes(null)
+
     window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
+    window.addEventListener('click', onClick)
+    window.addEventListener('dragend', onDragEnd)
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      window.removeEventListener('click', onClick)
+      window.removeEventListener('dragend', onDragEnd)
+    }
   }, [])
 }

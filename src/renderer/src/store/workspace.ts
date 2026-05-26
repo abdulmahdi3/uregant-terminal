@@ -33,6 +33,8 @@ export interface WorkspaceState {
   entering: Record<string, true>
   /** panes playing their pop-out animation; still in the layout until removal */
   closing: Record<string, true>
+  /** panes marked (via right-click) for a group move to another workspace */
+  selectedPaneIds: string[]
 
   // defaults sourced from settings (kept in sync by App)
   defaultProvider: ProviderId
@@ -52,6 +54,10 @@ export interface WorkspaceState {
   detachPane: (id: string) => void
   reopenClosed: () => void
   setActive: (id: string) => void
+  /** toggle a pane in/out of the group-move selection */
+  togglePaneSelected: (id: string) => void
+  /** clear the group-move selection */
+  clearPaneSelection: () => void
   focusByIndex: (index: number) => void
   setLayout: (node: MosaicNode<string> | null) => void
   setPaneType: (id: string, type: PaneType, init?: PaneInit) => void
@@ -60,6 +66,8 @@ export interface WorkspaceState {
   setAgent: (id: string, command: string) => void
   /** add or remove a pipe target for a pane (toggles presence in pipeTargets[]) */
   togglePipeTarget: (id: string, targetId: string) => void
+  /** replace a pane's whole pipe-target list at once (used by the "all panes" picker) */
+  setPipeTargets: (id: string, targets: string[]) => void
   /** open a shell pane in the same directory as an AI pane */
   openTerminalHere: (paneId: string) => void
   /** open an agent pane in the same directory as a shell pane */
@@ -145,6 +153,7 @@ export const useWorkspace = create<WorkspaceState>((set, get) => ({
   recentlyClosed: [],
   entering: {},
   closing: {},
+  selectedPaneIds: [],
   defaultProvider: 'anthropic',
   defaultModel: '',
   defaultAgent: DEFAULT_AGENT,
@@ -235,7 +244,8 @@ export const useWorkspace = create<WorkspaceState>((set, get) => ({
           : s.recentlyClosed
         const closing = { ...s.closing }
         delete closing[id]
-        return { panes, layout, activePaneId, recentlyClosed, closing }
+        const selectedPaneIds = s.selectedPaneIds.filter((p) => p !== id)
+        return { panes, layout, activePaneId, recentlyClosed, closing, selectedPaneIds }
       })
     }, PANE_ANIM_MS)
   },
@@ -256,7 +266,8 @@ export const useWorkspace = create<WorkspaceState>((set, get) => ({
       const remaining = getLeaves(layout)
       const activePaneId =
         s.activePaneId === id ? remaining[remaining.length - 1] ?? null : s.activePaneId
-      return { panes, layout, activePaneId }
+      const selectedPaneIds = s.selectedPaneIds.filter((p) => p !== id)
+      return { panes, layout, activePaneId, selectedPaneIds }
     }),
 
   reopenClosed: () => {
@@ -283,6 +294,27 @@ export const useWorkspace = create<WorkspaceState>((set, get) => ({
   },
 
   setActive: (id) => set({ activePaneId: id }),
+
+  togglePaneSelected: (id) =>
+    set((s) => {
+      if (!s.panes[id]) return s
+      // Select the pane together with every pane it's piped to (and panes that
+      // pipe into it) — its connected group moves as one unit.
+      const group = new Set<string>([id])
+      s.panes[id].pipeTargets?.forEach((t) => s.panes[t] && group.add(t))
+      for (const [pid, p] of Object.entries(s.panes)) {
+        if (p.pipeTargets?.includes(id)) group.add(pid)
+      }
+      const groupIds = [...group]
+      const allSelected = groupIds.every((g) => s.selectedPaneIds.includes(g))
+      const sel = allSelected
+        ? s.selectedPaneIds.filter((p) => !group.has(p))
+        : [...new Set([...s.selectedPaneIds, ...groupIds])]
+      return { selectedPaneIds: sel }
+    }),
+
+  clearPaneSelection: () =>
+    set((s) => (s.selectedPaneIds.length ? { selectedPaneIds: [] } : s)),
 
   focusByIndex: (index) => {
     const leaves = getLeaves(get().layout)
@@ -319,6 +351,14 @@ export const useWorkspace = create<WorkspaceState>((set, get) => ({
       const next = cur.includes(targetId)
         ? cur.filter((t) => t !== targetId)
         : [...cur, targetId]
+      return { panes: { ...s.panes, [id]: { ...pane, pipeTargets: next.length ? next : undefined } } }
+    }),
+
+  setPipeTargets: (id, targets) =>
+    set((s) => {
+      const pane = s.panes[id]
+      if (!pane) return s
+      const next = [...new Set(targets.filter((t) => t !== id && s.panes[t]))]
       return { panes: { ...s.panes, [id]: { ...pane, pipeTargets: next.length ? next : undefined } } }
     }),
 
@@ -424,6 +464,6 @@ export const useWorkspace = create<WorkspaceState>((set, get) => ({
 
   hydrate: (panes, layout) => {
     const ids = getLeaves(layout)
-    set({ panes, layout, activePaneId: ids[ids.length - 1] ?? null })
+    set({ panes, layout, activePaneId: ids[ids.length - 1] ?? null, selectedPaneIds: [] })
   }
 }))

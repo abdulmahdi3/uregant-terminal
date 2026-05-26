@@ -121,6 +121,31 @@ export function getScreenText(paneId: string): string {
   return lines.join('\n')
 }
 
+/** A single scrollback hit: buffer line index + the trimmed line text. */
+export interface PaneMatch {
+  line: number
+  text: string
+}
+
+/**
+ * Scan a pane's whole buffer (scrollback included) for `query`, case-insensitive.
+ * Returns up to `max` matching lines — used by the workspace-wide search panel.
+ */
+export function findMatchesInPane(paneId: string, query: string, max = 40): PaneMatch[] {
+  const entry = pool.get(paneId)
+  if (!entry || !query) return []
+  const needle = query.toLowerCase()
+  const buf = entry.term.buffer.active
+  const out: PaneMatch[] = []
+  for (let i = 0; i < buf.length && out.length < max; i++) {
+    const line = buf.getLine(i)
+    if (!line) continue
+    const text = line.translateToString(true)
+    if (text.toLowerCase().includes(needle)) out.push({ line: i, text: text.trim() })
+  }
+  return out
+}
+
 /** Full terminal text including scrollback — used to extract the last agent result. */
 export function getFullText(paneId: string): string {
   const entry = pool.get(paneId)
@@ -373,6 +398,13 @@ export function searchInPane(paneId: string, query: string, dir: 'next' | 'prev'
 /** Clear any search highlight in a pane. */
 export function clearSearch(paneId: string): void {
   pool.get(paneId)?.search.clearDecorations()
+}
+
+/** Scroll a pane so the given buffer line sits near the top of the viewport. */
+export function scrollPaneToLine(paneId: string, line: number): void {
+  const entry = pool.get(paneId)
+  if (!entry) return
+  entry.term.scrollToLine(Math.max(0, line - 2))
 }
 
 /** Subscribe to result-count changes for a pane's search (resultIndex is -1 when none). */

@@ -14,8 +14,8 @@ interface UiState {
   linkingPaneId: string | null
   /** when set, only this pane is rendered (zoom / maximize) */
   zoomedPaneId: string | null
-  /** pane currently being dragged onto a workspace tab (null = no drag in progress) */
-  draggingPaneId: string | null
+  /** panes currently being dragged onto a workspace tab (null = no drag in progress) */
+  draggingPaneIds: string[] | null
   /** scrollback search bar visible (operates on the active pane) */
   searchOpen: boolean
   /** snippet awaiting {{variable}} values before insertion (null = none) */
@@ -36,7 +36,7 @@ interface UiState {
   setShowAskAll: (v: boolean) => void
   setLinkingPaneId: (id: string | null) => void
   setZoomedPaneId: (id: string | null) => void
-  setDraggingPane: (id: string | null) => void
+  setDraggingPanes: (ids: string[] | null) => void
   setSearchOpen: (v: boolean) => void
   setFillSnippet: (s: SnippetItem | null) => void
   setSavingTemplatePaneId: (id: string | null) => void
@@ -67,7 +67,7 @@ export const useUi = create<UiState>((set, get) => ({
   showAskAll: false,
   linkingPaneId: null,
   zoomedPaneId: null,
-  draggingPaneId: null,
+  draggingPaneIds: null,
   searchOpen: false,
   fillSnippet: null,
   savingTemplatePaneId: null,
@@ -96,7 +96,7 @@ export const useUi = create<UiState>((set, get) => ({
   setShowAskAll: (v) => set(v ? { ...ALL_CLOSED, showAskAll: true } : { showAskAll: false }),
   setLinkingPaneId: (id) => set(id ? { ...ALL_CLOSED, linkingPaneId: id } : { linkingPaneId: null }),
   setZoomedPaneId: (id) => set({ zoomedPaneId: id }),
-  setDraggingPane: (id) => set({ draggingPaneId: id }),
+  setDraggingPanes: (ids) => set({ draggingPaneIds: ids && ids.length ? ids : null }),
   setSearchOpen: (v) => set({ searchOpen: v }),
   setFillSnippet: (s) => set({ fillSnippet: s }),
   setSavingTemplatePaneId: (id) => set({ savingTemplatePaneId: id }),

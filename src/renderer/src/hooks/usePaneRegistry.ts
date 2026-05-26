@@ -22,7 +22,8 @@ export function usePaneRegistry(): void {
           title: p?.title ?? paneId,
           agentCommand: p?.agent?.command,
           shellName: p?.shell?.shell?.split(/[\\/]/).pop()?.replace(/\.exe$/i, ''),
-          linkedChatId: p?.telegramChatId
+          linkedChatId: p?.telegramChatId,
+          cwd: p?.agent?.cwd ?? p?.shell?.cwd
         }
       })
       void window.api.updatePaneRegistry(registry)

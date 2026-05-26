@@ -34,8 +34,8 @@ export interface Pane {
   telegramChatId?: string
   /** pane IDs this pane pipes its output into (supports fan-out to multiple) */
   pipeTargets?: string[]
-  /** subtle accent tint (hex) to visually distinguish this pane; undefined = none */
-  tint?: string
+  /** free-form note attached to the pane (shown via the header note button) */
+  notes?: string
 }
 
 // ---------------------------------------------------------------------------
@@ -219,6 +219,8 @@ export interface PaneInfo {
   agentCommand?: string
   shellName?: string
   linkedChatId?: string
+  /** working directory the pane was launched in, if known */
+  cwd?: string
 }
 
 // ---------------------------------------------------------------------------

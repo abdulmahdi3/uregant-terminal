@@ -1,4 +1,5 @@
-import { forwardRef, useEffect, useState } from 'react'
+import { forwardRef, useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Mosaic, MosaicWindow } from 'react-mosaic-component'
 import type { MosaicNode } from 'react-mosaic-component'
 import { getLeaves } from '@renderer/lib/mosaicTree'
@@ -16,10 +17,9 @@ function clampSplits(node: MosaicNode<string> | null): MosaicNode<string> | null
     second: clampSplits(node.second) as MosaicNode<string>
   }
 }
-import { Bot, Terminal, SquareDashed, Send, Columns2, Rows2, X, History, Copy, GripVertical, Radio, Palette } from 'lucide-react'
+import { Bot, Terminal, SquareDashed, Send, Columns2, Rows2, X, History, Copy, StickyNote, Radio, Share2 } from 'lucide-react'
 import clsx from 'clsx'
 import { useWorkspace } from '@renderer/store/workspace'
-import { useWorkspaces } from '@renderer/store/workspaces'
 import { useBroadcastStore } from '@renderer/store/broadcast'
 import { usePaneStatus, type PaneStatus } from '@renderer/store/paneStatus'
 import { useUi } from '@renderer/store/ui'
@@ -43,14 +43,6 @@ function relTime(ts: number): string {
   const h = Math.floor(m / 60)
   if (h < 24) return `${h}h ago`
   return `${Math.floor(h / 24)}d ago`
-}
-
-/** Preset tints for distinguishing panes at a glance. */
-const PANE_TINTS = ['#4c8dff', '#a855f7', '#22c55e', '#f59e0b', '#f43f5e', '#06b6d4']
-
-function hexA(hex: string, alpha: number): string {
-  const n = parseInt(hex.replace('#', ''), 16)
-  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`
 }
 
 function PaneIcon({ paneId, size = 14 }: { paneId: string; size?: number }): JSX.Element {
@@ -91,6 +83,161 @@ function PaneStatus({ paneId }: { paneId: string }): JSX.Element | null {
   return null
 }
 
+const EMPTY_IDS: string[] = []
+
+/**
+ * A header button whose popover is portalled to <body>, so it isn't clipped by
+ * the mosaic window's `overflow: hidden` (which made the old in-pane popovers
+ * render behind neighbouring panes). Supports hover- or click-triggering.
+ */
+function HeaderPopover({
+  icon,
+  title,
+  active,
+  hover,
+  render
+}: {
+  icon: JSX.Element
+  title: string
+  active?: boolean
+  hover?: boolean
+  render: (close: () => void) => JSX.Element
+}): JSX.Element {
+  const btnRef = useRef<HTMLButtonElement>(null)
+  const popRef = useRef<HTMLDivElement>(null)
+  const closeTimer = useRef<number>(0)
+  const [open, setOpen] = useState(false)
+  const [pos, setPos] = useState<{ top: number; right: number }>({ top: 0, right: 0 })
+
+  const place = (): void => {
+    const r = btnRef.current?.getBoundingClientRect()
+    if (r) setPos({ top: r.bottom + 4, right: Math.max(8, window.innerWidth - r.right) })
+  }
+  const openNow = (): void => {
+    window.clearTimeout(closeTimer.current)
+    place()
+    setOpen(true)
+  }
+  const closeSoon = (): void => {
+    closeTimer.current = window.setTimeout(() => setOpen(false), 160)
+  }
+  const close = (): void => setOpen(false)
+
+  useEffect(() => {
+    if (!open || hover) return
+    const onDown = (e: MouseEvent): void => {
+      const t = e.target as Node
+      if (btnRef.current?.contains(t) || popRef.current?.contains(t)) return
+      setOpen(false)
+    }
+    window.addEventListener('mousedown', onDown)
+    return () => window.removeEventListener('mousedown', onDown)
+  }, [open, hover])
+
+  const stop = (e: React.MouseEvent): void => e.stopPropagation()
+
+  return (
+    <>
+      <button
+        ref={btnRef}
+        className={clsx('icon-btn', (open || active) && 'active')}
+        title={title}
+        onMouseDown={stop}
+        onClick={hover ? undefined : () => (open ? close() : openNow())}
+        onMouseEnter={hover ? openNow : undefined}
+        onMouseLeave={hover ? closeSoon : undefined}
+      >
+        {icon}
+      </button>
+      {open &&
+        createPortal(
+          <div
+            ref={popRef}
+            className="header-popover"
+            style={{ top: pos.top, right: pos.right }}
+            onMouseDown={stop}
+            onMouseEnter={hover ? openNow : undefined}
+            onMouseLeave={hover ? closeSoon : undefined}
+          >
+            {render(close)}
+          </div>,
+          document.body
+        )}
+    </>
+  )
+}
+
+/** Hover popover to pick which other panes a pane pipes / broadcasts to. */
+function PaneConnectPicker({
+  selfId,
+  title,
+  icon,
+  selected,
+  onToggle,
+  onAll,
+  onClear
+}: {
+  selfId: string
+  title: string
+  icon: JSX.Element
+  selected: string[]
+  onToggle: (id: string) => void
+  onAll: (ids: string[]) => void
+  onClear: () => void
+}): JSX.Element {
+  const layout = useWorkspace((s) => s.layout)
+  const panes = useWorkspace((s) => s.panes)
+  const leaves = getLeaves(layout)
+  const others = leaves.filter((id) => id !== selfId)
+  const allOn = others.length > 0 && others.every((id) => selected.includes(id))
+
+  return (
+    <HeaderPopover
+      icon={
+        <span className="pane-conn-trigger">
+          {icon}
+          {selected.length > 0 && <span className="pane-conn-dot">{selected.length}</span>}
+        </span>
+      }
+      title={title}
+      active={selected.length > 0}
+      hover
+      render={() => (
+        <div className="pane-conn">
+          <div className="pane-conn-head">{title}</div>
+          {others.length === 0 ? (
+            <div className="pane-conn-empty">No other panes</div>
+          ) : (
+            <>
+              <button
+                className={clsx('pane-conn-row', allOn && 'on')}
+                onClick={() => (allOn ? onClear() : onAll(others))}
+              >
+                <span className="pane-conn-check">{allOn ? '✓' : ''}</span>
+                <span className="pane-conn-name">All panes</span>
+              </button>
+              {others.map((id) => {
+                const on = selected.includes(id)
+                return (
+                  <button
+                    key={id}
+                    className={clsx('pane-conn-row', on && 'on')}
+                    onClick={() => onToggle(id)}
+                  >
+                    <span className="pane-conn-check">{on ? '✓' : ''}</span>
+                    <span className="pane-conn-num">{leaves.indexOf(id) + 1}</span>
+                    <span className="pane-conn-name">{panes[id]?.title ?? id}</span>
+                  </button>
+                )
+              })}
+            </>
+          )}
+        </div>
+      )}
+    />
+  )
+}
+
 /**
  * Slim, custom replacement for the default mosaic toolbar (also the drag handle).
  * Must forward a ref to a native element: react-mosaic attaches the React-DnD
@@ -122,16 +269,23 @@ const PaneHeader = forwardRef<HTMLDivElement, { paneId: string }>(function PaneH
   const openTerminalHere = useWorkspace((s) => s.openTerminalHere)
   const openAgentHere = useWorkspace((s) => s.openAgentHere)
   const setActive = useWorkspace((s) => s.setActive)
+  const togglePaneSelected = useWorkspace((s) => s.togglePaneSelected)
+  const selected = useWorkspace((s) => s.selectedPaneIds.includes(paneId))
   const setLinkingPaneId = useUi((s) => s.setLinkingPaneId)
-  const setDraggingPane = useUi((s) => s.setDraggingPane)
+  const setDraggingPanes = useUi((s) => s.setDraggingPanes)
   const toggleZoom = useUi((s) => s.toggleZoom)
-  // Only show the "move to workspace" grip when there's somewhere to move to.
-  const hasOtherWorkspaces = useWorkspaces((s) => s.list.length > 1)
 
-  const tint = useWorkspace((s) => s.panes[paneId]?.tint)
+  const notes = useWorkspace((s) => s.panes[paneId]?.notes)
+  const pipeTargets = useWorkspace((s) => s.panes[paneId]?.pipeTargets) ?? EMPTY_IDS
+  const togglePipeTarget = useWorkspace((s) => s.togglePipeTarget)
+  const setPipeTargets = useWorkspace((s) => s.setPipeTargets)
+  const broadcastMembers = useBroadcastStore((s) => s.members)
+  const toggleBroadcastMember = useBroadcastStore((s) => s.toggleMember)
+  const setBroadcastMembers = useBroadcastStore((s) => s.setMembers)
+  const setBroadcastEnabled = useBroadcastStore((s) => s.setEnabled)
+  const hasOtherPanes = leaves.length >= 2
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(title)
-  const [tintOpen, setTintOpen] = useState(false)
 
   const commit = (): void => {
     const v = draft.trim()
@@ -168,18 +322,31 @@ const PaneHeader = forwardRef<HTMLDivElement, { paneId: string }>(function PaneH
   return (
     <div
       ref={ref}
-      className={clsx('pane-header', activePaneId === paneId && 'active')}
-      style={
-        tint
-          ? {
-              boxShadow: `inset 2px 0 0 0 ${tint}`,
-              background: activePaneId === paneId ? undefined : hexA(tint, 0.07)
-            }
-          : undefined
-      }
+      className={clsx('pane-header', activePaneId === paneId && 'active', selected && 'selected')}
+      // The header is always a native drag source for moving panes across
+      // workspaces (react-mosaic's own header drag is disabled — see
+      // draggable={false} on MosaicWindow — so native drops on the title bar /
+      // tabs fire reliably). Dragging an unselected pane moves just that one;
+      // dragging a selected pane moves the whole selection. Disabled while
+      // renaming so text selection in the title input still works.
+      draggable={!editing}
+      onDragStart={(e) => {
+        e.stopPropagation()
+        const sel = useWorkspace.getState().selectedPaneIds
+        const ids = sel.includes(paneId) ? sel : [paneId]
+        e.dataTransfer.effectAllowed = 'move'
+        e.dataTransfer.setData('text/plain', `${ids.length} pane${ids.length !== 1 ? 's' : ''}`)
+        setDraggingPanes(ids)
+      }}
+      onDragEnd={() => setDraggingPanes(null)}
       onMouseDown={() => setActive(paneId)}
       // double-click the header's empty space to maximize the pane, again to restore
       onDoubleClick={() => toggleZoom(paneId)}
+      // right-click toggles the pane into the group-move selection
+      onContextMenu={(e) => {
+        e.preventDefault()
+        togglePaneSelected(paneId)
+      }}
       onAuxClick={(e) => {
         // middle-click anywhere on the header (like a browser tab) closes it
         if (e.button === 1) {
@@ -240,22 +407,54 @@ const PaneHeader = forwardRef<HTMLDivElement, { paneId: string }>(function PaneH
       <PaneStatus paneId={paneId} />
       <div className="pane-header-spacer" />
       <div className="pane-controls" onMouseDown={stop} onDoubleClick={stop}>
-        {hasOtherWorkspaces && (
-          <button
-            className="icon-btn pane-move-grip"
-            title="Drag to another workspace tab to move this pane"
-            draggable
-            onDragStart={(e) => {
-              // Shield the native drag from react-mosaic's own drag source on the header.
-              e.stopPropagation()
-              e.dataTransfer.effectAllowed = 'move'
-              e.dataTransfer.setData('text/plain', title)
-              setDraggingPane(paneId)
+        <HeaderPopover
+          icon={<StickyNote size={13} style={notes ? { color: 'var(--accent)' } : undefined} />}
+          title={notes ? 'Notes' : 'Add a note'}
+          active={!!notes}
+          render={() => (
+            <div className="pane-notes">
+              <textarea
+                className="pane-notes-text"
+                autoFocus
+                rows={6}
+                placeholder="Notes for this pane…"
+                value={notes ?? ''}
+                onChange={(e) => updatePane(paneId, { notes: e.target.value || undefined })}
+              />
+              <span className="pane-notes-hint">Saved automatically</span>
+            </div>
+          )}
+        />
+        {hasOtherPanes && (
+          <PaneConnectPicker
+            selfId={paneId}
+            title="Pipe output to…"
+            icon={<Share2 size={13} />}
+            selected={pipeTargets}
+            onToggle={(id) => togglePipeTarget(paneId, id)}
+            onAll={(ids) => setPipeTargets(paneId, ids)}
+            onClear={() => setPipeTargets(paneId, [])}
+          />
+        )}
+        {hasOtherPanes && (
+          <PaneConnectPicker
+            selfId={paneId}
+            title="Broadcast input to…"
+            icon={<Radio size={13} />}
+            selected={broadcastMembers.filter((m) => m !== paneId)}
+            onToggle={(id) => {
+              toggleBroadcastMember(id)
+              setBroadcastEnabled(true)
             }}
-            onDragEnd={() => setDraggingPane(null)}
-          >
-            <GripVertical size={13} />
-          </button>
+            onAll={(ids) => {
+              setBroadcastMembers(ids)
+              setBroadcastEnabled(true)
+            }}
+            onClear={() => {
+              setBroadcastMembers([])
+              setBroadcastEnabled(false)
+            }}
+          />
         )}
         {paneType === 'ai' && agentCwd && (
           <button
@@ -307,41 +506,6 @@ const PaneHeader = forwardRef<HTMLDivElement, { paneId: string }>(function PaneH
         >
           <Rows2 size={13} />
         </button>
-        <div className="pane-tint-wrap">
-          <button
-            className={clsx('icon-btn', tintOpen && 'active')}
-            title="Pane tint"
-            onClick={() => setTintOpen((v) => !v)}
-          >
-            <Palette size={13} style={tint ? { color: tint } : undefined} />
-          </button>
-          {tintOpen && (
-            <div className="pane-tint-pop" onMouseLeave={() => setTintOpen(false)}>
-              {PANE_TINTS.map((c) => (
-                <button
-                  key={c}
-                  className={clsx('pane-tint-swatch', tint === c && 'active')}
-                  style={{ background: c }}
-                  title={c}
-                  onClick={() => {
-                    updatePane(paneId, { tint: c })
-                    setTintOpen(false)
-                  }}
-                />
-              ))}
-              <button
-                className="pane-tint-swatch none"
-                title="No tint"
-                onClick={() => {
-                  updatePane(paneId, { tint: undefined })
-                  setTintOpen(false)
-                }}
-              >
-                <X size={11} />
-              </button>
-            </div>
-          )}
-        </div>
         <button className="icon-btn danger" title="Close (Ctrl+W)" onClick={close}>
           <X size={13} />
         </button>
@@ -500,6 +664,10 @@ export default function Workspace(): JSX.Element {
         <MosaicWindow<string>
           path={path}
           title={panes[id]?.title ?? id}
+          // Disable react-mosaic's header drag — the pane header is our own
+          // native cross-workspace drag source instead, so native drops on the
+          // title bar / workspace tabs fire without react-dnd intercepting them.
+          draggable={false}
           renderToolbar={() => (
             <div className="pane-header-host">
               <PaneHeader paneId={id} />

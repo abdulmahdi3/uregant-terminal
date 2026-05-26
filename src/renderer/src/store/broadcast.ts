@@ -12,6 +12,8 @@ interface BroadcastState {
   toggle: () => void
   setEnabled: (v: boolean) => void
   toggleMember: (id: string) => void
+  /** replace the whole member list at once (used by the "all panes" picker) */
+  setMembers: (ids: string[]) => void
   isMember: (id: string) => boolean
   clear: () => void
 }
@@ -25,6 +27,7 @@ export const useBroadcastStore = create<BroadcastState>((set, get) => ({
     set((s) => ({
       members: s.members.includes(id) ? s.members.filter((m) => m !== id) : [...s.members, id]
     })),
+  setMembers: (ids) => set({ members: [...new Set(ids)] }),
   isMember: (id) => get().members.includes(id),
   clear: () => set({ members: [] })
 }))

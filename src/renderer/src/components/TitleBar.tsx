@@ -78,13 +78,14 @@ function WorkspaceTab({ ws, active }: { ws: WorkspaceEntry; active: boolean }): 
   const rename = useWorkspaces((s) => s.rename)
   const switchTo = useWorkspaces((s) => s.switchTo)
   const remove = useWorkspaces((s) => s.remove)
-  const movePaneTo = useWorkspaces((s) => s.movePaneTo)
+  const movePanesTo = useWorkspaces((s) => s.movePanesTo)
   const canClose = useWorkspaces((s) => s.list.length > 1)
-  const draggingPaneId = useUi((s) => s.draggingPaneId)
-  const setDraggingPane = useUi((s) => s.setDraggingPane)
-  // A pane can be dropped here only when one is being dragged and this isn't
-  // the workspace it already lives in.
-  const canDrop = !!draggingPaneId && !active
+  const badge = useWorkspaces((s) => s.badges[ws.id] ?? 0)
+  const draggingPaneIds = useUi((s) => s.draggingPaneIds)
+  const setDraggingPanes = useUi((s) => s.setDraggingPanes)
+  // Panes can be dropped here only when a drag is in progress and this isn't
+  // the workspace they already live in.
+  const canDrop = !!draggingPaneIds && !active
 
   const commit = (): void => {
     const v = draft.trim()
@@ -112,18 +113,22 @@ function WorkspaceTab({ ws, active }: { ws: WorkspaceEntry; active: boolean }): 
         if (e.button === 1) { e.preventDefault(); remove(ws.id) }
       }}
       onDragOver={(e) => {
-        if (!canDrop) return
+        if (!draggingPaneIds) return
+        // Capture the drop even for the active tab so it can't bubble up to the
+        // title bar's "new workspace" catch-all (dropping on an existing
+        // workspace must never spawn a new one).
         e.preventDefault()
-        e.dataTransfer.dropEffect = 'move'
-        if (!dropOver) setDropOver(true)
+        e.dataTransfer.dropEffect = canDrop ? 'move' : 'none'
+        if (canDrop && !dropOver) setDropOver(true)
       }}
       onDragLeave={() => setDropOver(false)}
       onDrop={(e) => {
-        if (!canDrop) return
+        if (!draggingPaneIds) return
         e.preventDefault()
+        e.stopPropagation()
         setDropOver(false)
-        if (draggingPaneId) movePaneTo(draggingPaneId, ws.id)
-        setDraggingPane(null)
+        if (canDrop) movePanesTo(draggingPaneIds, ws.id)
+        setDraggingPanes(null)
       }}
     >
       {editing ? (
@@ -149,6 +154,11 @@ function WorkspaceTab({ ws, active }: { ws: WorkspaceEntry; active: boolean }): 
           >
             {ws.name}
           </span>
+          {!active && badge > 0 && (
+            <span className="ws-tab-badge" title={`${badge} finished here`}>
+              {badge > 99 ? '99+' : badge}
+            </span>
+          )}
           {canClose && (
             <button
               className="ws-tab-close"
@@ -174,9 +184,11 @@ export default function TitleBar(): JSX.Element {
   const addWorkspace = useWorkspaces((s) => s.add)
   const switchTo = useWorkspaces((s) => s.switchTo)
   const removeWorkspace = useWorkspaces((s) => s.remove)
-  const movePaneTo = useWorkspaces((s) => s.movePaneTo)
-  const draggingPaneId = useUi((s) => s.draggingPaneId)
-  const setDraggingPane = useUi((s) => s.setDraggingPane)
+  const movePanesTo = useWorkspaces((s) => s.movePanesTo)
+  const movePanesToNew = useWorkspaces((s) => s.movePanesToNew)
+  const draggingPaneIds = useUi((s) => s.draggingPaneIds)
+  const setDraggingPanes = useUi((s) => s.setDraggingPanes)
+  const badges = useWorkspaces((s) => s.badges)
   const canCloseWorkspace = list.length > 1
   const templates = useSettings((s) => s.settings?.prefs.templates ?? [])
   const activePaneId = useWorkspace((s) => s.activePaneId)
@@ -206,9 +218,25 @@ export default function TitleBar(): JSX.Element {
     overflowList = [...list.filter((w) => !visibleIds.has(w.id) && w.id !== displaced.id), displaced]
   }
   const activeInOverflow = overflowList.some((w) => w.id === activeId)
+  const overflowBadgeTotal = overflowList.reduce((n, w) => n + (badges[w.id] ?? 0), 0)
 
   return (
-    <header className="titlebar">
+    <header
+      className="titlebar"
+      // Catch-all: dropping dragged panes anywhere on the title bar that isn't an
+      // existing workspace tab moves them into a brand-new workspace.
+      onDragOver={(e) => {
+        if (!draggingPaneIds) return
+        e.preventDefault()
+        e.dataTransfer.dropEffect = 'move'
+      }}
+      onDrop={(e) => {
+        if (!draggingPaneIds) return
+        e.preventDefault()
+        movePanesToNew(draggingPaneIds)
+        setDraggingPanes(null)
+      }}
+    >
       <div className="titlebar-left" data-nodrag>
         {/* Brand */}
         <AppLogo />
@@ -318,6 +346,11 @@ export default function TitleBar(): JSX.Element {
                 title={`${overflowList.length} more workspace${overflowList.length !== 1 ? 's' : ''}`}
               >
                 ···
+                {overflowBadgeTotal > 0 && (
+                  <span className="ws-tab-badge ws-more-badge">
+                    {overflowBadgeTotal > 99 ? '99+' : overflowBadgeTotal}
+                  </span>
+                )}
               </button>
             }
           >
@@ -328,7 +361,7 @@ export default function TitleBar(): JSX.Element {
                   className={clsx(
                     'hover-dd-item',
                     w.id === activeId && 'active',
-                    draggingPaneId && w.id !== activeId && 'drop-ok'
+                    draggingPaneIds && w.id !== activeId && 'drop-ok'
                   )}
                   onClick={() => switchTo(w.id)}
                   onAuxClick={(e) => {
@@ -338,18 +371,24 @@ export default function TitleBar(): JSX.Element {
                     }
                   }}
                   onDragOver={(e) => {
-                    if (!draggingPaneId || w.id === activeId) return
+                    if (!draggingPaneIds) return
                     e.preventDefault()
-                    e.dataTransfer.dropEffect = 'move'
+                    e.dataTransfer.dropEffect = w.id === activeId ? 'none' : 'move'
                   }}
                   onDrop={(e) => {
-                    if (!draggingPaneId || w.id === activeId) return
+                    if (!draggingPaneIds) return
                     e.preventDefault()
-                    movePaneTo(draggingPaneId, w.id)
-                    setDraggingPane(null)
+                    e.stopPropagation()
+                    if (w.id !== activeId) movePanesTo(draggingPaneIds, w.id)
+                    setDraggingPanes(null)
                   }}
                 >
                   <span className="hover-dd-item-name">{w.name}</span>
+                  {w.id !== activeId && (badges[w.id] ?? 0) > 0 && (
+                    <span className="ws-tab-badge">
+                      {(badges[w.id] ?? 0) > 99 ? '99+' : badges[w.id]}
+                    </span>
+                  )}
                   {canCloseWorkspace && (
                     <button
                       className="hover-dd-item-close"
@@ -367,9 +406,29 @@ export default function TitleBar(): JSX.Element {
             </>
           </HoverDropdown>
         )}
-        <button className="ws-add-btn" title="New workspace" onClick={addWorkspace}>
-          <Plus size={11} />
-        </button>
+        {draggingPaneIds ? (
+          <div
+            className="ws-new-drop"
+            title="Drop here to move into a new workspace"
+            onDragOver={(e) => {
+              e.preventDefault()
+              e.dataTransfer.dropEffect = 'move'
+            }}
+            onDrop={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              movePanesToNew(draggingPaneIds)
+              setDraggingPanes(null)
+            }}
+          >
+            <Plus size={11} />
+            <span>New workspace</span>
+          </div>
+        ) : (
+          <button className="ws-add-btn" title="New workspace" onClick={addWorkspace}>
+            <Plus size={11} />
+          </button>
+        )}
         {/* Sessions = saved workspace snapshots → grouped with the workspace tabs */}
         <SessionsMenu />
       </div>
