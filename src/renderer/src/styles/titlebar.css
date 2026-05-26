@@ -97,6 +97,18 @@
   color: var(--text);
   cursor: default;
 }
+/* Eligible drop target while a pane is being dragged onto the tabs. */
+.ws-tab.drop-ok {
+  border-color: var(--accent-soft, var(--accent));
+  border-style: dashed;
+  color: var(--text);
+}
+.ws-tab.drop-over {
+  background: var(--accent-soft, var(--bg-elev-3));
+  border-color: var(--accent);
+  border-style: solid;
+  color: var(--text);
+}
 .ws-tab-name {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -213,6 +225,10 @@
 }
 .hover-dd-item.active {
   color: var(--accent);
+}
+.hover-dd-item.drop-ok {
+  border: 1px dashed var(--accent-soft, var(--accent));
+  color: var(--text);
 }
 .hover-dd-item svg {
   flex: 0 0 auto;

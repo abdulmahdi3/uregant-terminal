@@ -16,9 +16,10 @@ function clampSplits(node: MosaicNode<string> | null): MosaicNode<string> | null
     second: clampSplits(node.second) as MosaicNode<string>
   }
 }
-import { Bot, Terminal, SquareDashed, Send, Columns2, Rows2, X, History, Copy } from 'lucide-react'
+import { Bot, Terminal, SquareDashed, Send, Columns2, Rows2, X, History, Copy, GripVertical } from 'lucide-react'
 import clsx from 'clsx'
 import { useWorkspace } from '@renderer/store/workspace'
+import { useWorkspaces } from '@renderer/store/workspaces'
 import { useUi } from '@renderer/store/ui'
 import { useTokens, formatTokens } from '@renderer/store/tokens'
 import { useSessions } from '@renderer/store/sessions'
@@ -91,7 +92,10 @@ const PaneHeader = forwardRef<HTMLDivElement, { paneId: string }>(function PaneH
   const openAgentHere = useWorkspace((s) => s.openAgentHere)
   const setActive = useWorkspace((s) => s.setActive)
   const setLinkingPaneId = useUi((s) => s.setLinkingPaneId)
+  const setDraggingPane = useUi((s) => s.setDraggingPane)
   const toggleZoom = useUi((s) => s.toggleZoom)
+  // Only show the "move to workspace" grip when there's somewhere to move to.
+  const hasOtherWorkspaces = useWorkspaces((s) => s.list.length > 1)
 
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(title)
@@ -185,6 +189,23 @@ const PaneHeader = forwardRef<HTMLDivElement, { paneId: string }>(function PaneH
       <PaneStatus paneId={paneId} />
       <div className="pane-header-spacer" />
       <div className="pane-controls" onMouseDown={stop} onDoubleClick={stop}>
+        {hasOtherWorkspaces && (
+          <button
+            className="icon-btn pane-move-grip"
+            title="Drag to another workspace tab to move this pane"
+            draggable
+            onDragStart={(e) => {
+              // Shield the native drag from react-mosaic's own drag source on the header.
+              e.stopPropagation()
+              e.dataTransfer.effectAllowed = 'move'
+              e.dataTransfer.setData('text/plain', title)
+              setDraggingPane(paneId)
+            }}
+            onDragEnd={() => setDraggingPane(null)}
+          >
+            <GripVertical size={13} />
+          </button>
+        )}
         {paneType === 'ai' && agentCwd && (
           <button
             className="icon-btn"

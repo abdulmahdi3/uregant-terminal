@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import type { MosaicNode } from 'react-mosaic-component'
 import type { Pane } from '@shared/types'
+import { getLeaves, splitLeaf } from '@renderer/lib/mosaicTree'
 import { useWorkspace } from './workspace'
 
 const uid = (): string => Math.random().toString(36).slice(2, 10)
@@ -20,6 +21,8 @@ interface WorkspacesState {
   add: () => void
   switchTo: (id: string) => void
   remove: (id: string) => void
+  /** move a pane out of the active workspace into another one, then open it there */
+  movePaneTo: (paneId: string, targetId: string) => void
 }
 
 const firstId = uid()
@@ -73,5 +76,29 @@ export const useWorkspaces = create<WorkspacesState>((set, get) => ({
     } else {
       set({ list: remaining })
     }
+  },
+
+  movePaneTo: (paneId, targetId) => {
+    const { activeId, list } = get()
+    if (targetId === activeId) return
+    const ws = useWorkspace.getState()
+    const pane = ws.panes[paneId]
+    if (!pane) return
+    // Detach from the active workspace WITHOUT disposing the terminal, so the
+    // running CLI + scrollback survive the move (the pool is keyed by pane id).
+    ws.detachPane(paneId)
+    // Append into the target workspace's saved snapshot, preserving its layout.
+    const nextList = list.map((w) => {
+      if (w.id !== targetId) return w
+      const leaves = getLeaves(w.layout ?? null)
+      const layout = leaves.length
+        ? splitLeaf(w.layout as MosaicNode<string>, leaves[leaves.length - 1], paneId, 'row')
+        : paneId
+      return { ...w, panes: { ...(w.panes ?? {}), [paneId]: pane }, layout }
+    })
+    set({ list: nextList })
+    // Open the target workspace and focus the moved pane.
+    get().switchTo(targetId)
+    useWorkspace.getState().setActive(paneId)
   }
 }))

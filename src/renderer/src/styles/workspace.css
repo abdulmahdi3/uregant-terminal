@@ -695,6 +695,12 @@
   gap: 1px;
   cursor: default;
 }
+.pane-move-grip {
+  cursor: grab;
+}
+.pane-move-grip:active {
+  cursor: grabbing;
+}
 
 /* ---- react-mosaic: edge-to-edge, modern splits ---- */
 .mosaic-urterminal {

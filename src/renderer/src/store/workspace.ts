@@ -48,6 +48,8 @@ export interface WorkspaceState {
   /** split a pane, copying its session (agent command + folder) into the new one */
   duplicatePane: (id: string, direction: MosaicDirection) => void
   removePane: (id: string) => void
+  /** remove a pane from this workspace WITHOUT killing its terminal (used to move it elsewhere) */
+  detachPane: (id: string) => void
   reopenClosed: () => void
   setActive: (id: string) => void
   focusByIndex: (index: number) => void
@@ -237,6 +239,25 @@ export const useWorkspace = create<WorkspaceState>((set, get) => ({
       })
     }, PANE_ANIM_MS)
   },
+
+  detachPane: (id) =>
+    set((s) => {
+      if (!s.panes[id]) return s
+      const panes = { ...s.panes }
+      delete panes[id]
+      // drop the detached pane from any remaining pane's pipe targets
+      for (const [pid, pane] of Object.entries(panes)) {
+        if (pane.pipeTargets?.includes(id)) {
+          const next = pane.pipeTargets.filter((t) => t !== id)
+          panes[pid] = { ...pane, pipeTargets: next.length ? next : undefined }
+        }
+      }
+      const layout = removeLeaf(s.layout, id)
+      const remaining = getLeaves(layout)
+      const activePaneId =
+        s.activePaneId === id ? remaining[remaining.length - 1] ?? null : s.activePaneId
+      return { panes, layout, activePaneId }
+    }),
 
   reopenClosed: () => {
     const { recentlyClosed } = get()

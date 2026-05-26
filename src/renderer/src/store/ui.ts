@@ -12,6 +12,8 @@ interface UiState {
   linkingPaneId: string | null
   /** when set, only this pane is rendered (zoom / maximize) */
   zoomedPaneId: string | null
+  /** pane currently being dragged onto a workspace tab (null = no drag in progress) */
+  draggingPaneId: string | null
   /** app-wide color theme */
   appTheme: AppTheme
 
@@ -25,6 +27,7 @@ interface UiState {
   toggleTaskManager: () => void
   setLinkingPaneId: (id: string | null) => void
   setZoomedPaneId: (id: string | null) => void
+  setDraggingPane: (id: string | null) => void
   toggleZoom: (id: string) => void
   setAppTheme: (theme: AppTheme) => void
   cycleAppTheme: () => void
@@ -50,6 +53,7 @@ export const useUi = create<UiState>((set, get) => ({
   showTaskManager: false,
   linkingPaneId: null,
   zoomedPaneId: null,
+  draggingPaneId: null,
   appTheme: 'dark',
 
   // Overlays are mutually exclusive — opening one closes the rest (so e.g.
@@ -74,6 +78,7 @@ export const useUi = create<UiState>((set, get) => ({
     ),
   setLinkingPaneId: (id) => set(id ? { ...ALL_CLOSED, linkingPaneId: id } : { linkingPaneId: null }),
   setZoomedPaneId: (id) => set({ zoomedPaneId: id }),
+  setDraggingPane: (id) => set({ draggingPaneId: id }),
   toggleZoom: (id) => set({ zoomedPaneId: get().zoomedPaneId === id ? null : id }),
   setAppTheme: (theme) => set({ appTheme: theme }),
   cycleAppTheme: () =>

@@ -4,6 +4,7 @@ import clsx from 'clsx'
 import { useWorkspace } from '@renderer/store/workspace'
 import { useWorkspaces } from '@renderer/store/workspaces'
 import type { WorkspaceEntry } from '@renderer/store/workspaces'
+import { useUi } from '@renderer/store/ui'
 import { AGENTS, AGENT_LABELS } from '@shared/providers'
 import { getAvailableAgents, refreshAgentAvailability } from '@renderer/lib/agents'
 import { getShellSpecs, refreshWslDistros, type ShellSpec } from '@renderer/lib/shells'
@@ -39,13 +40,24 @@ function HoverDropdown({
     timer.current = window.setTimeout(() => setOpen(false), 160)
   }
   return (
-    <div className="hover-dd" onMouseEnter={show} onMouseLeave={hide}>
+    <div
+      className="hover-dd"
+      onMouseEnter={show}
+      onMouseLeave={hide}
+      // Dragging a pane over the trigger opens the menu so it can be dropped on
+      // a workspace listed inside (overflow tabs aren't visible otherwise).
+      onDragEnter={show}
+      onDragOver={show}
+      onDragLeave={hide}
+    >
       {trigger}
       {open && (
         <div
           className={clsx('hover-dd-menu', align === 'center' && 'center')}
           onMouseEnter={show}
           onMouseLeave={hide}
+          onDragEnter={show}
+          onDragOver={show}
           onClick={() => setOpen(false)}
         >
           {children}
@@ -60,10 +72,17 @@ const MAX_TABS = 4
 function WorkspaceTab({ ws, active }: { ws: WorkspaceEntry; active: boolean }): JSX.Element {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(ws.name)
+  const [dropOver, setDropOver] = useState(false)
   const rename = useWorkspaces((s) => s.rename)
   const switchTo = useWorkspaces((s) => s.switchTo)
   const remove = useWorkspaces((s) => s.remove)
+  const movePaneTo = useWorkspaces((s) => s.movePaneTo)
   const canClose = useWorkspaces((s) => s.list.length > 1)
+  const draggingPaneId = useUi((s) => s.draggingPaneId)
+  const setDraggingPane = useUi((s) => s.setDraggingPane)
+  // A pane can be dropped here only when one is being dragged and this isn't
+  // the workspace it already lives in.
+  const canDrop = !!draggingPaneId && !active
 
   const commit = (): void => {
     const v = draft.trim()
@@ -85,10 +104,24 @@ function WorkspaceTab({ ws, active }: { ws: WorkspaceEntry; active: boolean }): 
 
   return (
     <div
-      className={clsx('ws-tab', active && 'active')}
+      className={clsx('ws-tab', active && 'active', canDrop && 'drop-ok', dropOver && 'drop-over')}
       onClick={() => !active && switchTo(ws.id)}
       onAuxClick={(e) => {
         if (e.button === 1) { e.preventDefault(); remove(ws.id) }
+      }}
+      onDragOver={(e) => {
+        if (!canDrop) return
+        e.preventDefault()
+        e.dataTransfer.dropEffect = 'move'
+        if (!dropOver) setDropOver(true)
+      }}
+      onDragLeave={() => setDropOver(false)}
+      onDrop={(e) => {
+        if (!canDrop) return
+        e.preventDefault()
+        setDropOver(false)
+        if (draggingPaneId) movePaneTo(draggingPaneId, ws.id)
+        setDraggingPane(null)
       }}
     >
       {editing ? (
@@ -139,6 +172,9 @@ export default function TitleBar(): JSX.Element {
   const addWorkspace = useWorkspaces((s) => s.add)
   const switchTo = useWorkspaces((s) => s.switchTo)
   const removeWorkspace = useWorkspaces((s) => s.remove)
+  const movePaneTo = useWorkspaces((s) => s.movePaneTo)
+  const draggingPaneId = useUi((s) => s.draggingPaneId)
+  const setDraggingPane = useUi((s) => s.setDraggingPane)
   const canCloseWorkspace = list.length > 1
 
   // Installed agents + all shells (incl. WSL distros), detected asynchronously.
@@ -235,13 +271,28 @@ export default function TitleBar(): JSX.Element {
               {overflowList.map((w) => (
                 <div
                   key={w.id}
-                  className={clsx('hover-dd-item', w.id === activeId && 'active')}
+                  className={clsx(
+                    'hover-dd-item',
+                    w.id === activeId && 'active',
+                    draggingPaneId && w.id !== activeId && 'drop-ok'
+                  )}
                   onClick={() => switchTo(w.id)}
                   onAuxClick={(e) => {
                     if (e.button === 1) {
                       e.preventDefault()
                       removeWorkspace(w.id)
                     }
+                  }}
+                  onDragOver={(e) => {
+                    if (!draggingPaneId || w.id === activeId) return
+                    e.preventDefault()
+                    e.dataTransfer.dropEffect = 'move'
+                  }}
+                  onDrop={(e) => {
+                    if (!draggingPaneId || w.id === activeId) return
+                    e.preventDefault()
+                    movePaneTo(draggingPaneId, w.id)
+                    setDraggingPane(null)
                   }}
                 >
                   <span className="hover-dd-item-name">{w.name}</span>
