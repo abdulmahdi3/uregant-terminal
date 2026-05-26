@@ -21,6 +21,7 @@ import clsx from 'clsx'
 import { useWorkspace } from '@renderer/store/workspace'
 import { useWorkspaces } from '@renderer/store/workspaces'
 import { useBroadcastStore } from '@renderer/store/broadcast'
+import { usePaneStatus, type PaneStatus } from '@renderer/store/paneStatus'
 import { useUi } from '@renderer/store/ui'
 import { useTokens, formatTokens } from '@renderer/store/tokens'
 import { useSessions } from '@renderer/store/sessions'
@@ -52,6 +53,23 @@ function PaneIcon({ paneId, size = 14 }: { paneId: string; size?: number }): JSX
   if (type === 'ai') return <AgentLogo command={command ?? 'claude'} size={size} />
   if (type === 'shell') return <ShellLogo shell={shell} args={args} size={size} />
   return <SquareDashed size={size} className="pane-icon" />
+}
+
+const STATUS_LABEL: Record<PaneStatus, string> = {
+  working: 'Working',
+  awaiting: 'Awaiting',
+  idle: 'Idle'
+}
+
+/** Colored dot showing an AI pane's turn status (Working / Awaiting / Idle). */
+function AgentStatusDot({ paneId }: { paneId: string }): JSX.Element {
+  const status = usePaneStatus((s) => s.status[paneId]) ?? 'idle'
+  return (
+    <span
+      className={clsx('agent-stat-dot', `is-${status}`)}
+      title={`Agent: ${STATUS_LABEL[status]}`}
+    />
+  )
 }
 
 function PaneStatus({ paneId }: { paneId: string }): JSX.Element | null {
@@ -156,6 +174,7 @@ const PaneHeader = forwardRef<HTMLDivElement, { paneId: string }>(function PaneH
         <span className="pane-num" title={`Pane ${paneNum}`}>{paneNum}</span>
       )}
       <PaneIcon paneId={paneId} />
+      {paneType === 'ai' && <AgentStatusDot paneId={paneId} />}
       {editing ? (
         <input
           className="pane-title-edit"

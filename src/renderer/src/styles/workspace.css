@@ -642,6 +642,25 @@
   font-weight: 600;
   flex: 0 0 auto;
 }
+/* Agent turn-status dot (static colors — no animation by project convention). */
+.agent-stat-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+  background: var(--text-faint);
+}
+.agent-stat-dot.is-working {
+  background: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+.agent-stat-dot.is-awaiting {
+  background: #d29922;
+}
+.agent-stat-dot.is-idle {
+  background: #3fb950;
+}
 .pane-cwd::before {
   content: '';
   width: 4px;

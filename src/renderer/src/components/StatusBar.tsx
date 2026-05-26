@@ -6,6 +6,7 @@ import { useMetrics } from '@renderer/store/metrics'
 import { useTokens } from '@renderer/store/tokens'
 import { useUi } from '@renderer/store/ui'
 import { useBroadcastStore } from '@renderer/store/broadcast'
+import { usePaneStatus } from '@renderer/store/paneStatus'
 import { getLeaves } from '@renderer/lib/mosaicTree'
 import { LAYOUT_PRESETS } from '@renderer/lib/layoutPresets'
 import type { LayoutPreset } from '@renderer/lib/layoutPresets'
@@ -54,9 +55,13 @@ export default function StatusBar(): JSX.Element {
   const togglePipeTarget = useWorkspace((s) => s.togglePipeTarget)
   const applyLayoutPreset = useWorkspace((s) => s.applyLayoutPreset)
 
-  const activePanesMap = useTokens((s) => s.activePanes)
-  const agentsWorking = Object.keys(activePanesMap).filter((id) => panes[id]?.type === 'ai').length
+  const statusMap = usePaneStatus((s) => s.status)
+  const aiPaneIds = Object.keys(panes).filter((id) => panes[id]?.type === 'ai')
+  const agentsWorking = aiPaneIds.filter((id) => statusMap[id] === 'working').length
   const streaming = agentsWorking > 0
+  const activeStatus = activePaneId && panes[activePaneId]?.type === 'ai'
+    ? statusMap[activePaneId] ?? 'idle'
+    : null
 
   const ram = useMetrics((s) => s.ramMB)
   const cpu = useMetrics((s) => s.cpuPercent)
@@ -138,8 +143,16 @@ export default function StatusBar(): JSX.Element {
       {/* Always-visible working count */}
       <span className={clsx('sb-item', streaming && 'accent')}>
         <span className={clsx('sb-dot', streaming && 'live', streaming && 'streaming')} />
-        {agentsWorking} active
+        {agentsWorking} working
       </span>
+
+      {/* Active AI pane status */}
+      {activeStatus && (
+        <span className="sb-item" title={`Active agent: ${activeStatus}`}>
+          <span className={clsx('agent-stat-dot', `is-${activeStatus}`)} />
+          {activeStatus}
+        </span>
+      )}
 
       {/* Broadcast input mode toggle */}
       <button

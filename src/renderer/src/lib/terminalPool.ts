@@ -3,6 +3,7 @@ import { FitAddon } from '@xterm/addon-fit'
 import { noteOutputChars } from './outputMetrics'
 import { flashCopied } from '@renderer/store/copied'
 import { useTokens } from '@renderer/store/tokens'
+import { usePaneStatus } from '@renderer/store/paneStatus'
 import '@xterm/xterm/css/xterm.css'
 
 const SCROLLBACK = 5000
@@ -325,4 +326,5 @@ export function disposeTerminal(paneId: string): void {
   inputLines.delete(paneId)
   entry.dispose()
   useTokens.getState().clearPane(paneId)
+  usePaneStatus.getState().remove(paneId)
 }
