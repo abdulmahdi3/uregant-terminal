@@ -60,15 +60,11 @@
   flex: 1;
   height: 100%;
 }
-/* While dragging a pane, the empty title-bar space becomes a "new workspace"
-   drop target: switch off the window-drag region so drop events fire (they
-   bubble to the title bar's catch-all), and show a subtle accent fill. */
+/* While dragging a pane, the empty title-bar space accepts the drop (→ new
+   workspace) — just switch off the window-drag region so drop events fire; no
+   visual change, the title bar stays clean. */
 .titlebar-drag.drop-zone {
   -webkit-app-region: no-drag;
-  margin: 4px;
-  border: 1px dashed var(--accent);
-  border-radius: var(--r-md);
-  background: var(--accent-soft);
 }
 
 /* ---- workspace tabs — centred in normal flow between two drag spacers so
