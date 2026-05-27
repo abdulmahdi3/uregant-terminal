@@ -229,7 +229,6 @@ export interface SettingsPublic {
   /** args for the default shell (e.g. ["-d", "Ubuntu"]) */
   defaultShellArgs: string[]
   theme: ThemeName
-  language: string
   accentColor: string
   prefs: AppPrefs
 }
@@ -246,7 +245,6 @@ export interface SettingsPatch {
   defaultShell?: string
   defaultShellArgs?: string[]
   theme?: ThemeName
-  language?: string
   accentColor?: string
   /** shallow-merged into the stored prefs blob */
   prefs?: Partial<AppPrefs>

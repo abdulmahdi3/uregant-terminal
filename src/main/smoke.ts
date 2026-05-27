@@ -93,16 +93,10 @@ export async function runSettingsSmoke(win: BrowserWindow): Promise<void> {
     writeFileSync(join(process.cwd(), 'smoke-settings-en.png'), img.toPNG())
     console.log('SETSMOKE en screenshot bytes:', img.toPNG().length)
 
-    await exec(`window.api.patchSettings({ language: 'ar' })`)
-    await new Promise((r) => setTimeout(r, 400))
-    img = await win.webContents.capturePage()
-    writeFileSync(join(process.cwd(), 'smoke-settings-ar.png'), img.toPNG())
-    console.log('SETSMOKE ar screenshot bytes:', img.toPNG().length)
-
     const keySet = await exec(`window.__ws ? true : true`)
     void keySet
     const publicView = await win.webContents.executeJavaScript(
-      `(async () => { const s = await window.api.getSettings(); return JSON.stringify({ aKey: s.providers.anthropic.keySet, aPrev: s.providers.anthropic.keyPreview, tg: s.telegram.tokenSet, lang: s.language }); })()`
+      `(async () => { const s = await window.api.getSettings(); return JSON.stringify({ aKey: s.providers.anthropic.keySet, aPrev: s.providers.anthropic.keyPreview, tg: s.telegram.tokenSet }); })()`
     )
     console.log('SETSMOKE public:', publicView)
 

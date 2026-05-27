@@ -24,7 +24,6 @@ interface RawSettings {
   defaultShell: string
   defaultShellArgs: string[]
   theme: ThemeName
-  language: string
   accentColor: string
   prefs: AppPrefs
 }
@@ -43,7 +42,6 @@ const DEFAULTS: RawSettings = {
   defaultShell: '',
   defaultShellArgs: [],
   theme: 'dark',
-  language: 'en',
   accentColor: '#4c8dff',
   prefs: DEFAULT_PREFS
 }
@@ -124,7 +122,6 @@ export class SettingsStore {
       defaultShell: s.defaultShell || '',
       defaultShellArgs: s.defaultShellArgs || [],
       theme: s.theme,
-      language: s.language,
       accentColor: s.accentColor || '#4c8dff',
       prefs: { ...DEFAULT_PREFS, ...s.prefs }
     }
@@ -181,7 +178,6 @@ export class SettingsStore {
     if (patch.defaultShell !== undefined) s.defaultShell = patch.defaultShell
     if (patch.defaultShellArgs !== undefined) s.defaultShellArgs = patch.defaultShellArgs
     if (patch.theme) s.theme = patch.theme
-    if (patch.language) s.language = patch.language
     if (patch.accentColor) s.accentColor = patch.accentColor
     if (patch.prefs) s.prefs = { ...DEFAULT_PREFS, ...s.prefs, ...patch.prefs }
 

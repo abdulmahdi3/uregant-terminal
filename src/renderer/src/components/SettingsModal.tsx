@@ -13,7 +13,6 @@ import {
   DEFAULT_AGENT
 } from '@shared/providers'
 import { uid } from '@renderer/lib/snippets'
-import { SUPPORTED_LANGUAGES } from '@renderer/i18n/i18n'
 import { useSettings } from '@renderer/store/settings'
 import { useUi } from '@renderer/store/ui'
 import { toast } from '@renderer/store/toasts'
@@ -214,7 +213,7 @@ export default function SettingsModal(): JSX.Element | null {
       for (const k of keys) p[k] = DEFAULT_PREFS[k]
       void patch({ prefs: p as Partial<AppPrefs> })
     }
-    if (id === 'appearance') void patch({ accentColor: '#4c8dff', language: 'en' })
+    if (id === 'appearance') void patch({ accentColor: '#4c8dff' })
   }
 
   const exportSettings = (): void => {
@@ -223,7 +222,6 @@ export default function SettingsModal(): JSX.Element | null {
       version: 1,
       prefs: settings.prefs,
       accentColor: settings.accentColor,
-      language: settings.language,
       defaultProvider: settings.defaultProvider,
       defaultModel: settings.defaultModel,
       defaultAgent: settings.defaultAgent,
@@ -249,7 +247,6 @@ export default function SettingsModal(): JSX.Element | null {
         const p: SettingsPatch = {}
         if (d.prefs && typeof d.prefs === 'object') p.prefs = d.prefs as Partial<AppPrefs>
         if (typeof d.accentColor === 'string') p.accentColor = d.accentColor
-        if (typeof d.language === 'string') p.language = d.language
         if (typeof d.defaultProvider === 'string') p.defaultProvider = d.defaultProvider as ProviderId
         if (typeof d.defaultModel === 'string') p.defaultModel = d.defaultModel
         if (typeof d.defaultAgent === 'string') p.defaultAgent = d.defaultAgent
@@ -269,7 +266,6 @@ export default function SettingsModal(): JSX.Element | null {
     void patch({
       prefs: { ...DEFAULT_PREFS },
       accentColor: '#4c8dff',
-      language: 'en',
       defaultAgent: DEFAULT_AGENT,
       defaultShell: '',
       defaultShellArgs: []
@@ -295,7 +291,7 @@ export default function SettingsModal(): JSX.Element | null {
       'Terminal padding', 'Scroll sensitivity', 'Terminal bell sound', 'Copy on select',
       'Paste on right-click', 'Show pane title bars'
     ],
-    appearance: ['Theme', 'Terminal font', 'Font size', t('settings.language'), 'Accent Color'],
+    appearance: ['Theme', 'Terminal font', 'Font size', 'Accent Color'],
     behavior: [
       'Default shell folder', 'Auto-save interval', 'Max restored panes',
       'Confirm before closing a running pane', 'Focus new pane on create',
@@ -600,13 +596,6 @@ export default function SettingsModal(): JSX.Element | null {
                   <Row label="Font size">
                     <select className="select" value={prefs.fontSize || 13} onChange={(e) => setPref({ fontSize: Number(e.target.value) })}>
                       {[10, 11, 12, 13, 14, 15, 16, 18, 20].map((n) => <option key={n} value={n}>{n}px</option>)}
-                    </select>
-                  </Row>
-                )}
-                {match(t('settings.language')) && (
-                  <Row label={t('settings.language')}>
-                    <select className="select" value={settings.language} onChange={(e) => patch({ language: e.target.value })}>
-                      {SUPPORTED_LANGUAGES.map((l) => <option key={l.code} value={l.code}>{l.label}</option>)}
                     </select>
                   </Row>
                 )}

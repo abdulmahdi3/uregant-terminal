@@ -54,8 +54,7 @@ export default {
     appearance: 'Appearance',
     theme: 'Theme',
     dark: 'Dark',
-    light: 'Light',
-    language: 'Language'
+    light: 'Light'
   },
   telegram: {
     link: 'Link to Telegram',
