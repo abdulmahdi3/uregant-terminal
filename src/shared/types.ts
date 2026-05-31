@@ -181,7 +181,9 @@ export interface AppPrefs {
   clearWorkspaceOnExit: boolean
   /** target language for the "Translate selection" command (sent to open agents) */
   defaultLanguage: string
-  /** mount the remote folder (SSHFS) when opening an agent over SSH, so it can edit files */
+  /** OPT-IN: mount the remote folder (SSHFS) when opening an agent over SSH so it can edit
+   *  files in place. Off by default — the agent already manages the server via the urssh
+   *  helper; mounting needs SSHFS-Win and can slow the open if the server's slow to mount. */
   sshAgentMount: boolean
 
   // ---- notifications ----
@@ -226,7 +228,7 @@ export const DEFAULT_PREFS: AppPrefs = {
   pasteOnRightClick: true,
   clearWorkspaceOnExit: false,
   defaultLanguage: 'English',
-  sshAgentMount: true,
+  sshAgentMount: false,
 
   notifyOnlyUnfocused: false,
   notifyVolume: 60,

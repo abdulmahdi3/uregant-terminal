@@ -124,11 +124,11 @@ export class SshfsManager {
 
   private async doMount(opts: SshfsMountOpts): Promise<{ drive: string; mountPath: string }> {
     if (!sshfsInstalled()) throw new Error('SSHFS-Win is not installed')
-    // Try up to 3 free drive letters: a single letter can be wedged by a prior
+    // Try up to 2 free drive letters: a single letter can be wedged by a prior
     // failed/half mount, so don't fail outright — route around it.
     const tried = new Set<string>()
     let lastErr: Error | undefined
-    for (let attempt = 0; attempt < 3; attempt++) {
+    for (let attempt = 0; attempt < 2; attempt++) {
       const used = (l: string): boolean =>
         tried.has(l) ||
         existsSync(driveRoot(l)) ||
@@ -194,7 +194,7 @@ export class SshfsManager {
         }, 250)
         const timeout = setTimeout(
           () => finish(() => reject(new Error(`SSHFS mount timed out: ${stderr.trim().slice(0, 300)}`))),
-          25000
+          12000
         )
         proc.on('exit', (code) =>
           finish(() =>

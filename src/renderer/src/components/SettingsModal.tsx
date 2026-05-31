@@ -1049,7 +1049,7 @@ export default function SettingsModal(): JSX.Element | null {
                   } />
                 )}
                 {match('Mount remote folder for SSH agents') && (
-                  <ToggleCard icon={<Server size={16} />} title="Mount remote folder for SSH agents" desc="When opening an agent on an SSH pane, mount the server's folder as a local drive (SSHFS) so it can edit files. Requires SSHFS-Win." checked={prefs.sshAgentMount !== false} onChange={(v) => setPref({ sshAgentMount: v })} />
+                  <ToggleCard icon={<Server size={16} />} title="Mount remote folder for SSH agents" desc="Opt-in: mount the server's folder as a local drive (SSHFS) for in-place file editing. Off by default — the agent already manages the server via the urssh helper; enabling this needs SSHFS-Win and can slow the open while the drive mounts." checked={prefs.sshAgentMount === true} onChange={(v) => setPref({ sshAgentMount: v })} />
                 )}
               </section>
             )}
