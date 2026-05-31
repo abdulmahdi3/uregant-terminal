@@ -571,6 +571,7 @@ export const IPC = {
   learningApproveOp: 'learning:approve-op', // renderer -> main: write a pending op into the brain
   learningRejectOp: 'learning:reject-op', // renderer -> main: discard a pending op
   learningForgetProject: 'learning:forget-project', // renderer -> main: wipe one project's learning
+  learningInject: 'learning:inject', // renderer -> main: write the brain into an agent's context file
 
   // clipboard (right-click paste of text + images)
   clipboardRead: 'clipboard:read',

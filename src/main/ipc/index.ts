@@ -299,6 +299,9 @@ export function registerIpc(getWindow: () => BrowserWindow | null): IpcContext {
     forgetLearningProject(projectHash)
     return { ok: true }
   })
+  ipcMain.handle(IPC.learningInject, (_e, { cwd, agentId }: { cwd: string; agentId: string }) =>
+    capture.injectNow(cwd, agentId)
+  )
 
   // ---- clipboard (right-click paste of text + images) ----
   // Reading via the main-process clipboard module avoids renderer permission

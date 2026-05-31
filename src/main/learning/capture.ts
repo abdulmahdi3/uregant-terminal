@@ -4,9 +4,17 @@ import { runDistillForProject, type DistillOutcome } from './distillRunner'
 import { getRunModel } from './model'
 import { ReviewQueue, commitOp, type PendingOp } from './review'
 import { brainIndex } from './brain'
+import { injectForPane } from './inject'
+import { projectHash as hashOf } from './paths'
 import { appendTurn, getLearningConfig, type LearningConfig, type TurnRecord } from './store'
 import type { Candidate } from './heuristics'
 import type { DistillOp } from './merge'
+
+interface PaneCtx {
+  cwd: string
+  agentId: string
+  projectHash: string
+}
 
 // Drop a turn marker that's an exact duplicate of the previous one for the same
 // pane within this window — defends against a mirrored renderer double-delivering
@@ -38,6 +46,9 @@ export class CaptureService implements CaptureSink {
   private assemblers = new Map<string, TurnAssembler>()
   // Last submitted prompt per pane, for coalescing duplicate markers.
   private lastTurn = new Map<string, { text: string; ts: number }>()
+  // Live pane → { cwd, agentId, projectHash } so we can re-inject open panes
+  // after a learning is approved.
+  private paneCtx = new Map<string, PaneCtx>()
   // Lazily constructed (reads state.json) — only once a turn actually completes.
   private gate: CandidateGate | null = null
 
@@ -69,15 +80,33 @@ export class CaptureService implements CaptureSink {
   }
 
   onSessionStart({ ptyId, paneId, agentId, cwd }: { ptyId: string; paneId: string; agentId: string; cwd: string }): void {
-    if (!this.active()) return
+    const cfg = this.cfg()
+    // Passive injection at spawn (independent of capture): write the project's
+    // current learnings into the agent's native context file before it boots, so
+    // the agent reads them on startup. Untracked-only; never crashes the spawn.
+    if (cfg.enabled && cfg.injectionPassive && cwd && agentId) {
+      const ctx: PaneCtx = { cwd, agentId, projectHash: hashOf(cwd) }
+      this.paneCtx.set(paneId, ctx)
+      this.injectPane(ctx)
+    }
+
+    if (!cfg.enabled || !cfg.capture) return
     // v1: capture only AI-agent panes. Shells/SSH spawn with no agent command,
     // so an empty agentId means "not an agent" — skip it to cut noise + surface.
-    if (this.cfg().aiOnly && !agentId) return
+    if (cfg.aiOnly && !agentId) return
     this.assemblers.get(paneId)?.end()
     this.assemblers.set(
       paneId,
       new TurnAssembler(paneId, ptyId, agentId, cwd, () => this.cfg(), (rec) => this.handleTurn(rec))
     )
+  }
+
+  private injectPane(ctx: PaneCtx): void {
+    try {
+      injectForPane({ cwd: ctx.cwd, agentId: ctx.agentId, projectHash: ctx.projectHash, maxBytes: this.cfg().maxInjectBytes })
+    } catch {
+      /* injection must never break a pane spawn */
+    }
   }
 
   onPtyData(paneId: string, chunk: string): void {
@@ -97,10 +126,19 @@ export class CaptureService implements CaptureSink {
 
   onSessionEnd(paneId: string): void {
     this.lastTurn.delete(paneId)
+    this.paneCtx.delete(paneId)
     const a = this.assemblers.get(paneId)
     if (!a) return
     a.end()
     this.assemblers.delete(paneId)
+  }
+
+  /** Re-inject every open pane whose project matches (after an approve/distill). */
+  private reinjectProject(projectHash: string): void {
+    if (!this.cfg().injectionPassive) return
+    for (const ctx of this.paneCtx.values()) {
+      if (ctx.projectHash === projectHash) this.injectPane(ctx)
+    }
   }
 
   /** Current candidate review queue (for the renderer's learning panel). */
@@ -151,9 +189,13 @@ export class CaptureService implements CaptureSink {
     }
   }
 
-  /** Approve a pending op → write it into the brain. */
+  /** Approve a pending op → write it into the brain, then refresh open panes. */
   approveOp(id: string): boolean {
-    return new ReviewQueue().approve(id)
+    const review = new ReviewQueue()
+    const pending = review.list().find((p) => p.id === id)
+    const ok = review.approve(id)
+    if (ok && pending) this.reinjectProject(pending.projectHash)
+    return ok
   }
 
   /** Reject (discard) a pending op. */
@@ -169,5 +211,10 @@ export class CaptureService implements CaptureSink {
   /** The current brain index for a scope (memories + skills), for the UI. */
   brain(projectHash: string | null): ReturnType<typeof brainIndex> {
     return brainIndex(projectHash)
+  }
+
+  /** Manually inject the brain into an agent's context file for a cwd. */
+  injectNow(cwd: string, agentId: string): ReturnType<typeof injectForPane> {
+    return injectForPane({ cwd, agentId, projectHash: hashOf(cwd), maxBytes: this.cfg().maxInjectBytes })
   }
 }

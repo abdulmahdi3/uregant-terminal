@@ -87,7 +87,9 @@ const api = {
     approveOp: (id: string): Promise<boolean> => ipcRenderer.invoke(IPC.learningApproveOp, id),
     rejectOp: (id: string): Promise<void> => ipcRenderer.invoke(IPC.learningRejectOp, id),
     forgetProject: (projectHash: string): Promise<{ ok: true }> =>
-      ipcRenderer.invoke(IPC.learningForgetProject, projectHash)
+      ipcRenderer.invoke(IPC.learningForgetProject, projectHash),
+    inject: (cwd: string, agentId: string): Promise<{ status: string; file?: string }> =>
+      ipcRenderer.invoke(IPC.learningInject, { cwd, agentId })
   },
 
   // ---- clipboard (right-click paste) ----
