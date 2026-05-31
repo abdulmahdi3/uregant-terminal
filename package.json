@@ -1,6 +1,6 @@
 {
   "name": "urterminal",
-  "version": "0.3.6",
+  "version": "0.3.7",
   "description": "Multi-pane AI + shell terminal",
   "main": "./out/main/index.js",
   "author": "URterminal",
