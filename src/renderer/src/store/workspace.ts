@@ -428,12 +428,8 @@ export const useWorkspace = create<WorkspaceState>((set, get) => ({
     // folder (cwd) rather than flashing the folder picker.
     if (pane.shell?.ssh) {
       const target = pane.shell.ssh.target
-      if (sshAgentOpening.has(target)) {
-        toast(`Already opening an agent for ${target}…`, 'info')
-        return
-      }
+      if (sshAgentOpening.has(target)) return // already opening for this target
       sshAgentOpening.add(target)
-      toast(`Opening ${command} for ${target}…`, 'info')
       void window.api
         .sshOpenAgent(target)
         .then((res) => {

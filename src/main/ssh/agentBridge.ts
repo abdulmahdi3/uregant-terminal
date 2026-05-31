@@ -77,6 +77,9 @@ export class SshAgentBridge {
       readyTimeout: 20000,
       keepaliveInterval: 15000
     })
+    // Keep the rejection handled even if no exec runs before a connect failure
+    // (open() no longer awaits this, so the first urssh call surfaces errors).
+    void ready.catch(() => {})
     const conn: Conn = { client, ready }
     this.conns.set(opts.target, conn)
     return conn
@@ -144,8 +147,9 @@ export class SshAgentBridge {
    */
   async open(opts: AgentOverSshOpts): Promise<AgentOverSshResult> {
     await this.ensureServer()
-    const conn = this.ensureConn(opts)
-    await conn.ready // surface auth/connection failures to the caller
+    // Start (or reuse) the connection in the background — don't block the open on
+    // it. The first urssh command awaits conn.ready and surfaces any failure.
+    this.ensureConn(opts)
     if (!this.helperDir) this.helperDir = mkdtempSync(join(tmpdir(), 'urssh-'))
     const win = process.platform === 'win32'
     const helperPath = join(this.helperDir, win ? 'urssh.cmd' : 'urssh')
