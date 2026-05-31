@@ -448,6 +448,7 @@ export default function SettingsModal(): JSX.Element | null {
   const { t } = useTranslation()
   const show = useUi((s) => s.showSettings)
   const setShow = useUi((s) => s.setShowSettings)
+  const settingsSection = useUi((s) => s.settingsSection)
   const setShowShortcuts = useUi((s) => s.setShowShortcuts)
   const settings = useSettings((s) => s.settings)
   const patch = useSettings((s) => s.patch)
@@ -485,6 +486,15 @@ export default function SettingsModal(): JSX.Element | null {
   useEffect(() => {
     if (settings) setOllamaUrl(settings.providers.ollama.baseUrl)
   }, [settings])
+
+  // Jump straight to a section when opened via openSettings('learning') etc.
+  useEffect(() => {
+    if (settingsSection) {
+      setActive(settingsSection)
+      setQuery('')
+      useUi.setState({ settingsSection: null })
+    }
+  }, [settingsSection])
 
   useEffect(() => {
     if (!settings) return

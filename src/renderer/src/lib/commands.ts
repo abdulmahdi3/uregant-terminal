@@ -337,7 +337,7 @@ export function getCommands(): Command[] {
       id: 'learning.settings',
       title: 'Learning: Open settings',
       group: 'Learning',
-      run: () => ui().setShowSettings(true)
+      run: () => ui().openSettings('learning')
     },
 
     // ---- Google Tasks ----

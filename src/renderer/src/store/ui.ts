@@ -28,8 +28,12 @@ interface UiState {
   showNotes: boolean
   /** app-wide color theme */
   appTheme: AppTheme
+  /** when opening settings, jump to this section id (consumed once by SettingsModal) */
+  settingsSection: string | null
 
   setShowSettings: (v: boolean) => void
+  /** open settings, optionally navigating straight to a section (e.g. 'learning') */
+  openSettings: (section?: string) => void
   setShowCommandPalette: (v: boolean) => void
   toggleCommandPalette: () => void
   setShowShortcuts: (v: boolean) => void
@@ -83,10 +87,13 @@ export const useUi = create<UiState>((set, get) => ({
   showSshPrompt: false,
   showNotes: false,
   appTheme: 'dark',
+  settingsSection: null,
 
   // Overlays are mutually exclusive — opening one closes the rest (so e.g.
   // hitting Ctrl+K while Settings is open swaps to the palette, not stacks).
   setShowSettings: (v) => set(v ? { ...ALL_CLOSED, showSettings: true } : { showSettings: false }),
+  openSettings: (section) =>
+    set({ ...ALL_CLOSED, showSettings: true, settingsSection: section ?? null }),
   setShowCommandPalette: (v) =>
     set(v ? { ...ALL_CLOSED, showCommandPalette: true } : { showCommandPalette: false }),
   toggleCommandPalette: () =>

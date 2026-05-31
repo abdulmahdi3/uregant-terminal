@@ -41,6 +41,22 @@
 .sb-item.dim {
   color: var(--text-faint);
 }
+.sb-learning {
+  background: transparent;
+  border: none;
+  color: inherit;
+  gap: 4px;
+  padding: 2px 6px;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+}
+.sb-learning:hover {
+  background: var(--bg-elev-2);
+  color: var(--accent);
+}
+.sb-learning .dim {
+  color: var(--text-faint);
+}
 .sb-spacer {
   flex: 1;
 }

@@ -8,6 +8,7 @@ import { useUi } from '@renderer/store/ui'
 import { usePaneStatus } from '@renderer/store/paneStatus'
 import { LAYOUT_PRESETS } from '@renderer/lib/layoutPresets'
 import type { LayoutPreset } from '@renderer/lib/layoutPresets'
+import LearningStatus from './LearningStatus'
 
 const VERSION = 'v0.2.0'
 
@@ -131,6 +132,9 @@ export default function StatusBar(): JSX.Element {
       </span>
 
       <span className="sb-spacer" />
+
+      {/* Hermes learning: pending-review indicator (only when learning is on) */}
+      <LearningStatus />
 
       {/* Combined CPU + RAM button → opens the task manager */}
       <button
